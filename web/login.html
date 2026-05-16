@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Đăng nhập — Hanzi Layout Editor</title>
+  <meta name="description" content="Đăng nhập vào Hanzi Layout Editor để thiết kế và quản lý bố cục vở luyện viết Hán tự." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/styles/index.css">
+  <link rel="stylesheet" href="/src/styles/login.css">
+</head>
+<body>
+  <div class="login-page">
+    <div class="login-card">
+      <div class="login-brand">
+        <div class="login-brand-icon">漢</div>
+        <h1 class="login-brand-title">Hanzi Layout Editor</h1>
+        <p class="login-brand-subtitle">Thiết kế vở luyện viết Hán tự</p>
+      </div>
+
+      <form class="login-form" id="login-form" autocomplete="on">
+        <div class="login-error" id="login-error"></div>
+
+        <div class="login-field">
+          <label class="login-label" for="login-email">Email</label>
+          <input
+            type="email"
+            id="login-email"
+            class="login-input"
+            placeholder="admin@gmail.com"
+            autocomplete="email"
+            required
+          />
+        </div>
+
+        <div class="login-field">
+          <label class="login-label" for="login-password">Mật khẩu</label>
+          <input
+            type="password"
+            id="login-password"
+            class="login-input"
+            placeholder="••••••"
+            autocomplete="current-password"
+            required
+          />
+        </div>
+
+        <button type="submit" class="login-submit" id="login-submit">
+          Đăng nhập
+        </button>
+      </form>
+
+      <div class="login-footer">
+        © 2026 Hanzi Layout Editor
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/login.ts"></script>
+</body>
+</html>

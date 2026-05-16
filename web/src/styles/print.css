@@ -1,0 +1,112 @@
+/* Print Styles */
+@media print {
+  @page {
+    size: A4;
+    margin: 0;
+  }
+
+  html, body {
+    background: #fff !important;
+    width: 210mm;
+    margin: 0;
+    padding: 0;
+  }
+
+  #app { display: none !important; }
+
+  .print-container {
+    display: block !important;
+  }
+
+  .print-page {
+    width: 210mm;
+    min-height: 297mm;
+    padding: 10mm;
+    background: #fff;
+    page-break-after: always;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .print-page:last-child {
+    page-break-after: auto;
+  }
+
+  .print-page .page-element {
+    position: absolute;
+  }
+}
+
+@media screen {
+  .print-container {
+    display: none;
+  }
+
+  .preview-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: none;
+    flex-direction: column;
+    background: rgba(10, 12, 18, 0.94);
+    backdrop-filter: blur(10px);
+  }
+
+  .preview-modal.open {
+    display: flex;
+  }
+
+  .preview-header {
+    height: 56px;
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 18px;
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-text);
+    background: var(--color-bg-elevated);
+  }
+
+  .preview-header strong {
+    display: block;
+    font-size: 14px;
+  }
+
+  #preview-count {
+    display: block;
+    margin-top: 2px;
+    color: var(--color-text-secondary);
+    font-size: 11px;
+  }
+
+  .preview-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .preview-pages {
+    flex: 1 1 auto;
+    overflow: auto;
+    padding: 28px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 28px;
+  }
+
+  .preview-page {
+    width: 210mm;
+    min-height: 297mm;
+    padding: 10mm;
+    background: #fff;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 20px 80px rgba(0, 0, 0, 0.45);
+    transform-origin: top center;
+  }
+
+  .preview-page .page-element {
+    position: absolute;
+  }
+}

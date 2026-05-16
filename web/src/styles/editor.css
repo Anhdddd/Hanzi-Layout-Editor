@@ -1,0 +1,80 @@
+/* ============================================
+   Editor Layout
+   ============================================ */
+
+.editor-main {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  height: calc(100vh - var(--toolbar-height));
+}
+
+/* Canvas Area */
+.canvas-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg);
+  background-image: 
+    radial-gradient(circle at 1px 1px, rgba(255,255,255,0.03) 1px, transparent 0);
+  background-size: 24px 24px;
+  overflow: hidden;
+  position: relative;
+}
+
+.canvas-scroll {
+  flex: 1;
+  overflow: auto;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 40px 20px 80px;
+}
+
+.canvas-status {
+  display: flex;
+  gap: 20px;
+  padding: 6px 16px;
+  background: var(--color-bg-elevated);
+  border-top: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.canvas-status span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ─── Resizable Panel Handles ─── */
+
+.resize-handle {
+  width: 5px;
+  cursor: col-resize;
+  background: var(--color-border);
+  transition: background 0.15s ease;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 10;
+}
+
+.resize-handle:hover,
+.resize-handle:active {
+  background: var(--color-primary);
+}
+
+.resize-handle::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 3px;
+  height: 32px;
+  border-left: 1px solid rgba(255,255,255,0.2);
+  border-right: 1px solid rgba(255,255,255,0.2);
+  pointer-events: none;
+}
+

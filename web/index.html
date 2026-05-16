@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hanzi Layout Editor — Thiết kế vở luyện viết Hán tự</title>
+  <meta name="description" content="Công cụ thiết kế bố cục vở luyện viết chữ Hán tự. Kéo thả, tùy chỉnh, tạo template và batch generate trang luyện viết." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700;900&family=Noto+Serif+SC:wght@400;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/styles/index.css">
+  <link rel="stylesheet" href="/src/styles/editor.css">
+  <link rel="stylesheet" href="/src/styles/page.css">
+  <link rel="stylesheet" href="/src/styles/toolbar.css">
+  <link rel="stylesheet" href="/src/styles/sidebar.css">
+  <link rel="stylesheet" href="/src/styles/properties.css">
+  <link rel="stylesheet" href="/src/styles/print.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Top Toolbar -->
+    <header id="toolbar" class="toolbar">
+      <div class="toolbar-group toolbar-brand">
+        <a href="/dashboard.html" class="toolbar-btn" title="Quay về Dashboard" id="tool-back-dashboard" style="text-decoration:none;">◀</a>
+        <span class="brand-icon">漢</span>
+        <span class="brand-name">Hanzi Layout Editor</span>
+      </div>
+      <div class="toolbar-divider"></div>
+
+      <div class="toolbar-group" id="format-tools">
+        <select id="tool-font-family" class="toolbar-select" title="Font">
+          <option value="Noto Sans SC">Noto Sans SC</option>
+          <option value="Noto Serif SC">Noto Serif SC</option>
+          <option value="Inter">Inter</option>
+          <option value="Arial">Arial</option>
+          <option value="Times New Roman">Times New Roman</option>
+        </select>
+        <input type="number" id="tool-font-size" class="toolbar-input-number" value="14" min="6" max="200" title="Font Size (pt)" />
+        <button id="tool-bold" class="toolbar-btn" title="Bold (Ctrl+B)"><b>B</b></button>
+        <button id="tool-italic" class="toolbar-btn" title="Italic (Ctrl+I)"><i>I</i></button>
+        <button id="tool-underline" class="toolbar-btn" title="Underline (Ctrl+U)"><u>U</u></button>
+      </div>
+      <div class="toolbar-divider"></div>
+
+      <div class="toolbar-group">
+        <label class="toolbar-color-wrap" title="Text Color">
+          <span class="color-icon">A</span>
+          <input type="color" id="tool-text-color" value="#000000" class="toolbar-color" />
+        </label>
+        <label class="toolbar-color-wrap" title="Background Color">
+          <span class="color-icon bg-icon">▐</span>
+          <input type="color" id="tool-bg-color" value="#ffffff" class="toolbar-color" />
+        </label>
+      </div>
+      <div class="toolbar-divider"></div>
+
+      <div class="toolbar-group">
+        <button id="tool-align-left" class="toolbar-btn" title="Align Left">☰</button>
+        <button id="tool-align-center" class="toolbar-btn" title="Align Center">☷</button>
+        <button id="tool-align-right" class="toolbar-btn" title="Align Right">☰</button>
+      </div>
+      <div class="toolbar-divider"></div>
+
+      <div class="toolbar-group toolbar-actions">
+        <button id="tool-undo" class="toolbar-btn" title="Undo (Ctrl+Z)">↶</button>
+        <button id="tool-redo" class="toolbar-btn" title="Redo (Ctrl+Y)">↷</button>
+        <button id="tool-delete" class="toolbar-btn toolbar-btn-danger" title="Delete (Del)">🗑</button>
+      </div>
+
+      <div class="toolbar-spacer"></div>
+
+      <div class="toolbar-group toolbar-export">
+        <label class="toolbar-mini-control" title="How many data items to place on each printed page">
+          <span>Items/page</span>
+          <select id="tool-items-per-page" class="toolbar-select toolbar-select-sm">
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+          </select>
+        </label>
+        <label class="toolbar-mini-control" title="Show sample data on canvas instead of raw {{variables}}">
+          <input type="checkbox" id="tool-design-data-toggle" />
+          <span>Data View</span>
+        </label>
+        <label class="toolbar-mini-control" title="Choose a sample layout template" style="display:none;">
+          <span>Template</span>
+          <select id="tool-template-preset" class="toolbar-select toolbar-select-template">
+            <option value="elegant">Elegant</option>
+            <option value="triple">3 Words</option>
+            <option value="minimal">Minimal</option>
+            <option value="flashcard">Flashcard</option>
+          </select>
+        </label>
+        <input type="text" id="tool-layout-name" class="toolbar-input-text" placeholder="Tên layout..." value="" title="Layout name" style="width:140px;" />
+        <button id="tool-save-cloud" class="toolbar-btn-primary" title="Lưu lên server">☁️ Save</button>
+        <button id="tool-save-template" class="toolbar-btn-outlined" title="Save Template JSON">💾 JSON</button>
+        <button id="tool-load-template" class="toolbar-btn-outlined" title="Load Template">📂 Load</button>
+        <button id="tool-load-sample-template" class="toolbar-btn-outlined" title="Load Selected Sample Template" style="display:none;">✨ Load Sample</button>
+        <button id="tool-preview" class="toolbar-btn-outlined" title="Preview Pages">👁 Preview</button>
+        <button id="tool-download-pdf" class="toolbar-btn-primary" title="Tải file PDF" style="background:linear-gradient(135deg,#10b981,#34d399);">📥 PDF</button>
+        <button id="tool-generate" class="toolbar-btn-outlined" title="Generate & Print" style="display:none;">🖨 Print</button>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="editor-main">
+      <!-- Left Sidebar -->
+      <aside id="sidebar" class="sidebar">
+        <div class="sidebar-section">
+          <h3 class="sidebar-title">➕ Add Elements</h3>
+          <div class="sidebar-elements">
+            <button class="sidebar-add-btn" data-type="text" id="add-text-btn">
+              <span class="add-icon">T</span>
+              <span>Text</span>
+            </button>
+            <button class="sidebar-add-btn" data-type="practiceGrid" id="add-grid-btn">
+              <span class="add-icon">田</span>
+              <span>Practice Grid</span>
+            </button>
+            <button class="sidebar-add-btn" data-type="characterBlock" id="add-charblock-btn">
+              <span class="add-icon">字</span>
+              <span>Character Block</span>
+            </button>
+            <button class="sidebar-add-btn" data-type="table" id="add-table-btn">
+              <span class="add-icon">▦</span>
+              <span>Table</span>
+            </button>
+            <button class="sidebar-add-btn" data-type="shape" id="add-shape-btn">
+              <span class="add-icon">□</span>
+              <span>Shape / Line</span>
+            </button>
+            <button class="sidebar-add-btn" data-type="callout" id="add-callout-btn">
+              <span class="add-icon">!</span>
+              <span>Callout</span>
+            </button>
+            <button class="sidebar-add-btn" data-type="divider" id="add-divider-btn">
+              <span class="add-icon">—</span>
+              <span>Divider</span>
+            </button>
+            <button class="sidebar-add-btn" data-type="checklist" id="add-checklist-btn">
+              <span class="add-icon">☑</span>
+              <span>Checklist</span>
+            </button>
+            <button class="sidebar-add-btn" data-type="image" id="add-image-btn">
+              <span class="add-icon">🖼</span>
+              <span>Image</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="sidebar-section">
+          <h3 class="sidebar-title">📊 Data Source</h3>
+          <div class="sidebar-data">
+            <button id="btn-load-data" class="sidebar-action-btn">📁 Import JSON Data</button>
+            <input type="file" id="file-data-input" accept=".json" style="display:none" />
+            <div id="data-preview" class="data-preview">
+              <p class="data-placeholder">No data loaded. Import a JSON file or use sample data.</p>
+            </div>
+            <button id="btn-use-sample" class="sidebar-action-btn sidebar-action-secondary">📝 Use Sample Data</button>
+          </div>
+        </div>
+
+        <div class="sidebar-section">
+          <h3 class="sidebar-title">🏷 Template Variables</h3>
+          <div id="variable-list" class="variable-list">
+            <p class="data-placeholder">Load data to see available variables</p>
+          </div>
+        </div>
+
+        <div class="sidebar-section">
+          <h3 class="sidebar-title">📄 Pages</h3>
+          <div class="page-controls">
+            <span id="page-indicator">Template</span>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Resize Handle: Left -->
+      <div class="resize-handle resize-handle-left" id="resize-handle-left" title="Drag to resize sidebar"></div>
+
+      <!-- Canvas Area -->
+      <div class="canvas-area" id="canvas-area">
+        <div class="canvas-scroll" id="canvas-scroll">
+          <div class="a4-page-wrapper">
+            <div class="a4-page" id="a4-page" data-page="template">
+              <!-- Elements will be added here -->
+            </div>
+          </div>
+        </div>
+        <div class="canvas-status">
+          <span id="status-elements">Elements: 0</span>
+          <span id="status-zoom">Zoom: 100%</span>
+          <span id="status-page-size">A4 (210×297mm)</span>
+        </div>
+      </div>
+
+      <!-- Resize Handle: Right -->
+      <div class="resize-handle resize-handle-right" id="resize-handle-right" title="Drag to resize properties"></div>
+
+      <!-- Right Properties Panel -->
+      <aside id="properties-panel" class="properties-panel">
+        <div class="panel-header">
+          <h3 class="panel-title">Properties</h3>
+        </div>
+        <div id="panel-content" class="panel-content">
+          <div class="panel-empty">
+            <p>Select an element to see properties</p>
+          </div>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <!-- Hidden: Generated pages container for printing -->
+  <div id="print-container" class="print-container"></div>
+
+  <div id="preview-modal" class="preview-modal" aria-hidden="true">
+    <div class="preview-header">
+      <div>
+        <strong>Print Preview</strong>
+        <span id="preview-count">0 pages</span>
+      </div>
+      <div class="preview-actions">
+        <button id="preview-print" class="toolbar-btn-primary">🖨 Print</button>
+        <button id="preview-close" class="toolbar-btn-outlined">Close</button>
+      </div>
+    </div>
+    <div id="preview-pages" class="preview-pages"></div>
+  </div>
+
+  <!-- Hidden file input for template loading -->
+  <input type="file" id="file-template-input" accept=".json" style="display:none" />
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

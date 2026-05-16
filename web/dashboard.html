@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard — Hanzi Layout Editor</title>
+  <meta name="description" content="Quản lý bố cục vở luyện viết Hán tự. Tạo mới, chỉnh sửa, và xuất PDF." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/styles/index.css">
+  <link rel="stylesheet" href="/src/styles/dashboard.css">
+</head>
+<body>
+  <div class="dashboard">
+    <!-- Header -->
+    <header class="dash-header">
+      <div class="dash-header-left">
+        <div class="dash-logo-icon">漢</div>
+        <span class="dash-logo-text">Hanzi Layout Editor</span>
+      </div>
+      <div class="dash-header-right">
+        <div class="dash-user-info">
+          <div class="dash-user-avatar" id="user-avatar">A</div>
+          <span id="user-name">Admin</span>
+        </div>
+        <button class="dash-logout-btn" id="btn-logout">Đăng xuất</button>
+      </div>
+    </header>
+
+    <!-- Content -->
+    <div class="dash-content">
+      <!-- Sample Layouts -->
+      <section class="dash-section">
+        <div class="dash-section-header">
+          <h2 class="dash-section-title">
+            <span class="section-icon">✨</span>
+            Mẫu có sẵn
+          </h2>
+        </div>
+        <div class="dash-grid" id="sample-grid">
+          <!-- Skeleton loading -->
+          <div class="skeleton-card"><div class="skeleton-thumb"></div><div class="skeleton-body"><div class="skeleton-line medium"></div><div class="skeleton-line short"></div></div></div>
+          <div class="skeleton-card"><div class="skeleton-thumb"></div><div class="skeleton-body"><div class="skeleton-line medium"></div><div class="skeleton-line short"></div></div></div>
+          <div class="skeleton-card"><div class="skeleton-thumb"></div><div class="skeleton-body"><div class="skeleton-line medium"></div><div class="skeleton-line short"></div></div></div>
+        </div>
+      </section>
+
+      <!-- My Layouts -->
+      <section class="dash-section">
+        <div class="dash-section-header">
+          <h2 class="dash-section-title">
+            <span class="section-icon">📁</span>
+            Layout của tôi
+            <span class="dash-section-badge" id="my-layouts-count">0</span>
+          </h2>
+          <button class="dash-create-btn" id="btn-create-new">
+            <span>➕</span> Tạo layout mới
+          </button>
+        </div>
+        <div class="dash-grid" id="my-grid">
+          <!-- Will be populated by JS -->
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- Toast container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <script type="module" src="/src/dashboard.ts"></script>
+</body>
+</html>

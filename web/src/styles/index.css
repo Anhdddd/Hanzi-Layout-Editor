@@ -1,0 +1,138 @@
+/* ============================================
+   Design System — Hanzi Layout Editor
+   ============================================ */
+
+:root {
+  /* Colors */
+  --color-bg: #0f1117;
+  --color-bg-elevated: #1a1d27;
+  --color-bg-surface: #232733;
+  --color-bg-hover: #2d3240;
+  --color-bg-active: #363c4f;
+  
+  --color-border: #2d3240;
+  --color-border-light: #3a4055;
+  --color-border-focus: #6366f1;
+  
+  --color-text: #e2e4eb;
+  --color-text-secondary: #9ca0af;
+  --color-text-muted: #6b7082;
+  --color-text-inverse: #0f1117;
+  
+  --color-primary: #6366f1;
+  --color-primary-hover: #7c7ff7;
+  --color-primary-light: rgba(99, 102, 241, 0.15);
+  
+  --color-accent: #f59e0b;
+  --color-accent-hover: #fbbf24;
+  
+  --color-danger: #ef4444;
+  --color-danger-hover: #f87171;
+  
+  --color-success: #10b981;
+  
+  /* A4 Page */
+  --page-bg: #ffffff;
+  --page-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+  --page-border: #d1d5db;
+  
+  /* Grid */
+  --grid-border: #b0b0b0;
+  --grid-cross: #d4d4d4;
+  --grid-guide-char: rgba(0, 0, 0, 0.12);
+  
+  /* Typography */
+  --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-chinese: 'Noto Sans SC', 'Microsoft YaHei', 'SimHei', sans-serif;
+  --font-chinese-serif: 'Noto Serif SC', 'SimSun', serif;
+  
+  /* Spacing */
+  --toolbar-height: 48px;
+  --sidebar-width: 240px;
+  --panel-width: 260px;
+  
+  /* Radius */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  
+  /* Transitions */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.25s ease;
+}
+
+/* Reset */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  color: var(--color-text);
+  background: var(--color-bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-light);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}
+
+/* Selection highlight */
+.element-selected {
+  outline: 2px solid var(--color-primary) !important;
+  outline-offset: 1px;
+}
+
+/* Moveable styles override */
+.moveable-line {
+  background: var(--color-primary) !important;
+}
+
+.moveable-control {
+  background: var(--color-primary) !important;
+  border-color: #fff !important;
+}
+
+/* Hidden in normal view, shown in print */
+.print-only {
+  display: none;
+}
+
+/* Utility */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}

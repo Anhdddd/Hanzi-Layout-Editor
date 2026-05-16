@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: hanzi-postgres
+    environment:
+      POSTGRES_DB: hanzi_editor
+      POSTGRES_USER: hanzi_user
+      POSTGRES_PASSWORD: hanzi_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - hanzi_pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  hanzi_pgdata:
