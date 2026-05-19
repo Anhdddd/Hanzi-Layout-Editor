@@ -4,7 +4,7 @@
 
 // ─── Element Types ───
 
-export type ElementType = 'text' | 'practiceGrid' | 'characterBlock' | 'table' | 'shape' | 'image' | 'callout' | 'divider' | 'checklist';
+export type ElementType = 'text' | 'hanziText' | 'strokeProgression' | 'practiceGrid' | 'miGrid' | 'characterBlock' | 'table' | 'shape' | 'image' | 'callout' | 'divider' | 'checklist';
 
 export type ObjectFit = 'contain' | 'cover' | 'fill' | 'none';
 
@@ -44,6 +44,31 @@ export interface TextElementProps extends BaseElementProps {
   lineHeight: number;
 }
 
+/** Hanzi Text element — renders Chinese characters as SVG */
+export interface HanziTextProps extends BaseElementProps {
+  type: 'hanziText';
+  content: string;         // Chinese characters (e.g. "你好世界")
+  charSize: number;        // pt — size of each character SVG
+  charGap: number;         // mm — gap between characters
+  color: string;           // fallback text color when SVG not available
+  lineHeight: number;
+}
+
+/** Stroke Progression element — shows step-by-step stroke order */
+export interface StrokeProgressionProps extends BaseElementProps {
+  type: 'strokeProgression';
+  character: string;           // single character or {{character}}
+  stepSize: number;            // pt — size of each step SVG
+  stepGap: number;             // mm — gap between steps
+  completedColor: string;      // color for completed strokes
+  activeColor: string;         // color for the current (active) stroke
+  showStepNumbers: boolean;    // show step number below each SVG
+  numberFontSize: number;      // pt — font size for step numbers
+  numberColor: string;         // color for step numbers
+  showFullCharFirst: boolean;  // show full character as first item
+  fullCharColor: string;       // color for the full character
+}
+
 /** Practice grid element (田字格) */
 export interface PracticeGridProps extends BaseElementProps {
   type: 'practiceGrid';
@@ -53,6 +78,22 @@ export interface PracticeGridProps extends BaseElementProps {
   borderColor: string;
   borderWidth: number;
   showCrossLines: boolean;
+  guideCharacter: string;
+  guideOpacity: number;
+  guideFillRows: number;
+  guideFontSize: number;
+}
+
+/** Mi Grid element (米字格) — practice grid with cross + diagonal lines */
+export interface MiGridProps extends BaseElementProps {
+  type: 'miGrid';
+  rows: number;
+  cols: number;
+  cellSize: number;        // mm
+  borderColor: string;
+  borderWidth: number;
+  showCrossLines: boolean;
+  showDiagonalLines: boolean;
   guideCharacter: string;
   guideOpacity: number;
   guideFillRows: number;
@@ -69,13 +110,19 @@ export interface CharacterBlockProps extends BaseElementProps {
   strokeProgression: string;
   showStrokeProgression: boolean;
   charFontSize: number;    // pt
+  gridType: 'tian' | 'mi';  // 田字格 or 米字格
   gridRows: number;
   gridCols: number;
   gridCellSize: number;    // mm
   gridBorderColor: string;
+  gridBorderOpacity: number;  // 0–1
+  gridCrossColor: string;
+  gridCrossOpacity: number;   // 0–1
   gridShowCross: boolean;
+  gridShowDiagonal: boolean;
   gridGuideOpacity: number;
   gridGuideFillRows: number;
+  gridRowGap: number;      // mm — gap between rows
 }
 
 /** Generic table */
@@ -164,7 +211,10 @@ export interface ChecklistElementProps extends BaseElementProps {
 /** Union of all element prop types */
 export type AnyElementProps =
   | TextElementProps
+  | HanziTextProps
+  | StrokeProgressionProps
   | PracticeGridProps
+  | MiGridProps
   | CharacterBlockProps
   | TableElementProps
   | ShapeElementProps

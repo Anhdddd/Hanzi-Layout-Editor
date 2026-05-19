@@ -4,10 +4,11 @@
  */
 import type {
   ElementType, AnyElementProps, TextElementProps,
-  PracticeGridProps, CharacterBlockProps, TableElementProps,
+  HanziTextProps, StrokeProgressionProps, PracticeGridProps, MiGridProps, CharacterBlockProps, TableElementProps,
   ShapeElementProps, ShapeVariant, ImageElementProps,
   CalloutElementProps, DividerElementProps, ChecklistElementProps
 } from '../types.ts';
+import { getCharacter, generateStrokeProgressionSVGs, generateCharacterSVG, generateGuideSVG } from '../data/characterService.ts';
 
 let elementCounter = 0;
 
@@ -52,7 +53,7 @@ export function getDefaultProps(type: ElementType): AnyElementProps {
         height: 15,
         content: 'Double-click to edit text',
         fontSize: 14,
-        fontFamily: 'Noto Sans SC',
+        fontFamily: 'LXGW WenKai',
         fontWeight: 'normal',
         fontStyle: 'normal',
         textDecoration: 'none',
@@ -61,6 +62,37 @@ export function getDefaultProps(type: ElementType): AnyElementProps {
         textAlign: 'left',
         lineHeight: 1.5,
       } as TextElementProps;
+
+    case 'hanziText':
+      return {
+        ...baseProps(type),
+        type: 'hanziText',
+        width: 120,
+        height: 20,
+        content: '你好世界',
+        charSize: 24,
+        charGap: 1,
+        color: '#000000',
+        lineHeight: 1.2,
+      } as HanziTextProps;
+
+    case 'strokeProgression':
+      return {
+        ...baseProps(type),
+        type: 'strokeProgression',
+        width: 180,
+        height: 20,
+        character: '{{character}}',
+        stepSize: 24,
+        stepGap: 1,
+        completedColor: '#000000',
+        activeColor: '#cc0000',
+        showStepNumbers: false,
+        numberFontSize: 8,
+        numberColor: '#666666',
+        showFullCharFirst: true,
+        fullCharColor: '#000000',
+      } as StrokeProgressionProps;
 
     case 'practiceGrid':
       return {
@@ -80,26 +112,51 @@ export function getDefaultProps(type: ElementType): AnyElementProps {
         guideFontSize: 28,
       } as PracticeGridProps;
 
+    case 'miGrid':
+      return {
+        ...baseProps(type),
+        type: 'miGrid',
+        width: 170,
+        height: 50,
+        rows: 3,
+        cols: 10,
+        cellSize: 12,
+        borderColor: '#b0b0b0',
+        borderWidth: 1,
+        showCrossLines: true,
+        showDiagonalLines: true,
+        guideCharacter: '',
+        guideOpacity: 0.12,
+        guideFillRows: 1,
+        guideFontSize: 28,
+      } as MiGridProps;
+
     case 'characterBlock':
       return {
         ...baseProps(type),
         type: 'characterBlock',
         width: 180,
         height: 70,
-        character: '你',
-        pinyin: 'nǐ',
-        hanViet: 'NỄ',
-        meaningVi: 'bạn, anh, chị',
-        strokeProgression: '丿 𠆢 亻 亻 你 你 你',
+        character: '{{character}}',
+        pinyin: '{{pinyin}}',
+        hanViet: '',
+        meaningVi: '{{meaning_vi}}',
+        strokeProgression: '',
         showStrokeProgression: true,
         charFontSize: 36,
+        gridType: 'tian',
         gridRows: 3,
         gridCols: 10,
         gridCellSize: 12,
         gridBorderColor: '#b0b0b0',
+        gridBorderOpacity: 1,
+        gridCrossColor: '#d4d4d4',
+        gridCrossOpacity: 1,
         gridShowCross: true,
+        gridShowDiagonal: false,
         gridGuideOpacity: 0.12,
         gridGuideFillRows: 1,
+        gridRowGap: 0,
       } as CharacterBlockProps;
 
     case 'table':
@@ -115,7 +172,7 @@ export function getDefaultProps(type: ElementType): AnyElementProps {
         borderColor: '#999999',
         cellPadding: 2,
         fontSize: 11,
-        fontFamily: 'Noto Sans SC',
+        fontFamily: 'LXGW WenKai',
         fontColor: '#000000',
         cellBg: '#ffffff',
         autoHeight: false,
@@ -165,7 +222,7 @@ export function getDefaultProps(type: ElementType): AnyElementProps {
         backgroundColor: '#fff7ed',
         borderColor: '#fed7aa',
         fontSize: 10,
-        fontFamily: 'Noto Sans SC',
+        fontFamily: 'LXGW WenKai',
         color: '#432818',
         borderRadius: 12,
       } as CalloutElementProps;
@@ -198,7 +255,7 @@ export function getDefaultProps(type: ElementType): AnyElementProps {
         borderColor: '#d1d5db',
         accentColor: '#2563eb',
         fontSize: 10,
-        fontFamily: 'Noto Sans SC',
+        fontFamily: 'LXGW WenKai',
         color: '#111827',
         lineGap: 2,
       } as ChecklistElementProps;
@@ -227,7 +284,10 @@ export function createElementDOM(props: AnyElementProps): HTMLDivElement {
 
   switch (props.type) {
     case 'text':       renderTextElement(el, props as TextElementProps); break;
+    case 'hanziText':  renderHanziText(el, props as HanziTextProps); break;
+    case 'strokeProgression': renderStrokeProgression(el, props as StrokeProgressionProps); break;
     case 'practiceGrid': renderPracticeGrid(el, props as PracticeGridProps); break;
+    case 'miGrid':     renderMiGrid(el, props as MiGridProps); break;
     case 'characterBlock': renderCharacterBlock(el, props as CharacterBlockProps); break;
     case 'table':      renderGenericTable(el, props as TableElementProps); break;
     case 'shape':      renderShape(el, props as ShapeElementProps); break;
@@ -251,6 +311,124 @@ function renderTextElement(el: HTMLElement, p: TextElementProps): void {
   el.style.textAlign = p.textAlign;
   el.style.lineHeight = String(p.lineHeight);
   el.innerText = p.content;
+}
+
+function renderHanziText(el: HTMLElement, p: HanziTextProps): void {
+  el.innerHTML = '';
+  el.style.overflow = 'visible';
+
+  const wrapper = document.createElement('div');
+  wrapper.className = 'hanzi-text-wrapper';
+  wrapper.style.display = 'flex';
+  wrapper.style.flexWrap = 'wrap';
+  wrapper.style.gap = `${(p.charGap * p.lineHeight)}mm ${p.charGap}mm`;
+  wrapper.style.alignItems = 'flex-end';
+
+  const content = p.content.replace(/\{\{.*?\}\}/g, '').trim();
+  const chars = content.split('').filter(ch => ch !== ' ' && ch !== '\n');
+
+  // If content is only template variables (nothing left after stripping), show placeholder
+  if (chars.length === 0 && p.content.trim().length > 0) {
+    const placeholder = document.createElement('span');
+    placeholder.className = 'hanzi-text-placeholder';
+    placeholder.textContent = p.content;
+    placeholder.style.color = '#999';
+    placeholder.style.fontSize = '11px';
+    placeholder.style.fontStyle = 'italic';
+    el.appendChild(placeholder);
+    return;
+  }
+
+  for (const ch of chars) {
+    const charData = getCharacter(ch);
+    if (charData && charData.strokes.length > 0) {
+      const span = document.createElement('span');
+      span.className = 'hanzi-text-char';
+      span.innerHTML = generateCharacterSVG(charData, Math.round(p.charSize * 1.5), p.color);
+      wrapper.appendChild(span);
+    } else {
+      // Fallback: render as text
+      const span = document.createElement('span');
+      span.className = 'hanzi-text-char hanzi-text-fallback';
+      span.textContent = ch;
+      span.style.fontSize = p.charSize + 'pt';
+      span.style.color = p.color;
+      wrapper.appendChild(span);
+    }
+  }
+
+  el.appendChild(wrapper);
+}
+
+function renderStrokeProgression(el: HTMLElement, p: StrokeProgressionProps): void {
+  el.innerHTML = '';
+  el.style.overflow = 'visible';
+
+  const wrapper = document.createElement('div');
+  wrapper.className = 'stroke-progression-wrapper';
+  wrapper.style.display = 'flex';
+  wrapper.style.flexWrap = 'wrap';
+  wrapper.style.gap = p.stepGap + 'mm';
+  wrapper.style.alignItems = 'flex-start';
+
+  const charStr = p.character.replace(/\{\{.*?\}\}/g, '').trim();
+  const charData = charStr.length === 1 ? getCharacter(charStr) : null;
+
+  if (!charData || charData.strokes.length === 0) {
+    // Show placeholder
+    const placeholder = document.createElement('span');
+    placeholder.style.color = '#999';
+    placeholder.style.fontSize = '11px';
+    placeholder.textContent = p.character || 'Set character';
+    el.appendChild(placeholder);
+    return;
+  }
+
+  const size = Math.round(p.stepSize * 1.5);
+
+  // Optionally show full character first
+  if (p.showFullCharFirst) {
+    const step = document.createElement('div');
+    step.className = 'stroke-step';
+    step.innerHTML = generateCharacterSVG(charData, size, p.fullCharColor);
+    if (p.showStepNumbers) {
+      const num = document.createElement('div');
+      num.className = 'stroke-step-num';
+      num.style.fontSize = p.numberFontSize + 'pt';
+      num.style.color = p.numberColor;
+      num.textContent = '全';
+      step.appendChild(num);
+    }
+    wrapper.appendChild(step);
+  }
+
+  // Render each progression step
+  const strokes = charData.strokes;
+  for (let stepIdx = 0; stepIdx < strokes.length; stepIdx++) {
+    let paths = '';
+    for (let i = 0; i <= stepIdx; i++) {
+      const color = i === stepIdx ? p.activeColor : p.completedColor;
+      paths += `<path d="${strokes[i]}" fill="${color}" />`;
+    }
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="${size}" height="${size}"><g transform="scale(1,-1) translate(0,-900)">${paths}</g></svg>`;
+
+    const step = document.createElement('div');
+    step.className = 'stroke-step';
+    step.innerHTML = svg;
+
+    if (p.showStepNumbers) {
+      const num = document.createElement('div');
+      num.className = 'stroke-step-num';
+      num.style.fontSize = p.numberFontSize + 'pt';
+      num.style.color = p.numberColor;
+      num.textContent = String(stepIdx + 1);
+      step.appendChild(num);
+    }
+
+    wrapper.appendChild(step);
+  }
+
+  el.appendChild(wrapper);
 }
 
 function buildGridTable(
@@ -278,12 +456,21 @@ function buildGridTable(
       }
 
       if (guideChar && r < guideFillRows) {
-        const span = document.createElement('span');
-        span.className = 'guide-char';
-        span.textContent = guideChar;
-        span.style.opacity = String(guideOpacity);
-        span.style.fontSize = (cellSize * 0.8) + 'mm';
-        td.appendChild(span);
+        // Try SVG dashed guide
+        const guideCharData = guideChar.length === 1 ? getCharacter(guideChar) : null;
+        if (guideCharData && guideCharData.strokes.length > 0) {
+          const guideDiv = document.createElement('div');
+          guideDiv.className = 'guide-char guide-char-svg';
+          guideDiv.innerHTML = generateGuideSVG(guideCharData, 100, Math.min(guideOpacity * 8, 1));
+          td.appendChild(guideDiv);
+        } else {
+          const span = document.createElement('span');
+          span.className = 'guide-char';
+          span.textContent = guideChar;
+          span.style.opacity = String(guideOpacity);
+          span.style.fontSize = (cellSize * 0.8) + 'mm';
+          td.appendChild(span);
+        }
       }
 
       tr.appendChild(td);
@@ -307,6 +494,74 @@ function renderPracticeGrid(el: HTMLElement, p: PracticeGridProps): void {
   p.height = p.rows * p.cellSize + 2;
 }
 
+function renderMiGrid(el: HTMLElement, p: MiGridProps): void {
+  el.style.height = 'auto';
+  el.style.width = 'auto';
+  el.innerHTML = '';
+  el.appendChild(buildMiGridTable(
+    p.rows, p.cols, p.cellSize,
+    p.borderColor, p.borderWidth,
+    p.showCrossLines, p.showDiagonalLines,
+    p.guideCharacter, p.guideOpacity, p.guideFillRows
+  ));
+  p.width = p.cols * p.cellSize + 2;
+  p.height = p.rows * p.cellSize + 2;
+}
+
+function buildMiGridTable(
+  rows: number, cols: number, cellSize: number,
+  borderColor: string, borderWidth: number,
+  showCross: boolean, showDiagonal: boolean,
+  guideChar: string, guideOpacity: number, guideFillRows: number
+): HTMLTableElement {
+  const table = document.createElement('table');
+  table.className = 'practice-grid mi-grid';
+
+  for (let r = 0; r < rows; r++) {
+    const tr = document.createElement('tr');
+    for (let c = 0; c < cols; c++) {
+      const td = document.createElement('td');
+      td.className = 'grid-cell mi-grid-cell';
+      td.style.width = cellSize + 'mm';
+      td.style.height = cellSize + 'mm';
+      td.style.borderColor = borderColor;
+      td.style.borderWidth = borderWidth + 'px';
+
+      if (showCross) {
+        td.appendChild(Object.assign(document.createElement('div'), { className: 'cross-h' }));
+        td.appendChild(Object.assign(document.createElement('div'), { className: 'cross-v' }));
+      }
+
+      if (showDiagonal) {
+        td.appendChild(Object.assign(document.createElement('div'), { className: 'diag-left' }));
+        td.appendChild(Object.assign(document.createElement('div'), { className: 'diag-right' }));
+      }
+
+      if (guideChar && r < guideFillRows) {
+        // Try SVG dashed guide
+        const guideCharData = guideChar.length === 1 ? getCharacter(guideChar) : null;
+        if (guideCharData && guideCharData.strokes.length > 0) {
+          const guideDiv = document.createElement('div');
+          guideDiv.className = 'guide-char guide-char-svg';
+          guideDiv.innerHTML = generateGuideSVG(guideCharData, 100, Math.min(guideOpacity * 8, 1));
+          td.appendChild(guideDiv);
+        } else {
+          const span = document.createElement('span');
+          span.className = 'guide-char';
+          span.textContent = guideChar;
+          span.style.opacity = String(guideOpacity);
+          span.style.fontSize = (cellSize * 0.8) + 'mm';
+          td.appendChild(span);
+        }
+      }
+
+      tr.appendChild(td);
+    }
+    table.appendChild(tr);
+  }
+  return table;
+}
+
 function renderCharacterBlock(el: HTMLElement, p: CharacterBlockProps): void {
   el.style.height = 'auto';
   el.innerHTML = '';
@@ -314,21 +569,35 @@ function renderCharacterBlock(el: HTMLElement, p: CharacterBlockProps): void {
   const block = document.createElement('div');
   block.className = 'character-block';
 
-  // Header: character + strokes
+  // Header: character (SVG) + stroke progression (SVG)
   const header = document.createElement('div');
   header.className = 'char-header';
 
   const mainChar = document.createElement('span');
   mainChar.className = 'char-main';
-  mainChar.textContent = p.character;
-  mainChar.style.fontSize = p.charFontSize + 'pt';
+  // Render main character as SVG if possible
+  const charStr = p.character.replace(/\{\{.*?\}\}/g, '').trim();
+  const charData = charStr.length === 1 ? getCharacter(charStr) : null;
+  if (charData && charData.strokes.length > 0) {
+    mainChar.innerHTML = generateCharacterSVG(charData, Math.round(p.charFontSize * 1.5));
+  } else {
+    mainChar.textContent = p.character;
+    mainChar.style.fontSize = p.charFontSize + 'pt';
+  }
   header.appendChild(mainChar);
 
-  if (p.showStrokeProgression && p.strokeProgression) {
+  if (p.showStrokeProgression) {
     const strokes = document.createElement('span');
     strokes.className = 'char-strokes';
-    strokes.textContent = p.strokeProgression;
-    header.appendChild(strokes);
+    if (charData && charData.strokes.length > 0) {
+      const svgs = generateStrokeProgressionSVGs(charData, 36);
+      strokes.innerHTML = svgs.join('');
+    } else if (p.strokeProgression) {
+      strokes.textContent = p.strokeProgression;
+    }
+    if (strokes.innerHTML || strokes.textContent) {
+      header.appendChild(strokes);
+    }
   }
   block.appendChild(header);
 
@@ -357,15 +626,141 @@ function renderCharacterBlock(el: HTMLElement, p: CharacterBlockProps): void {
   }
   block.appendChild(info);
 
-  // Practice grid
-  block.appendChild(buildGridTable(
+  // Practice grid — use gridType to decide tian or mi
+  const showDiag = p.gridType === 'mi' || (p.gridShowDiagonal ?? false);
+  // For guide character in grid, use the raw character (strip template vars)
+  const guideCharForGrid = charStr.length === 1 ? charStr : p.character.replace(/\{\{.*?\}\}/g, '').trim();
+  block.appendChild(buildCharBlockGrid(
     p.gridRows, p.gridCols, p.gridCellSize,
-    p.gridBorderColor, 1,
-    p.gridShowCross,
-    p.character, p.gridGuideOpacity, p.gridGuideFillRows
+    p.gridBorderColor, p.gridBorderOpacity ?? 1,
+    p.gridCrossColor || '#d4d4d4', p.gridCrossOpacity ?? 1,
+    p.gridShowCross, showDiag,
+    guideCharForGrid, p.gridGuideOpacity, p.gridGuideFillRows,
+    p.gridRowGap ?? 0
   ));
 
   el.appendChild(block);
+}
+
+function buildCharBlockGrid(
+  rows: number, cols: number, cellSize: number,
+  borderColor: string, borderOpacity: number,
+  crossColor: string, crossOpacity: number,
+  showCross: boolean, showDiagonal: boolean,
+  guideChar: string, guideOpacity: number, guideFillRows: number,
+  rowGap: number
+): HTMLElement {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'charblock-grid-wrapper';
+  if (rowGap > 0) {
+    wrapper.style.display = 'flex';
+    wrapper.style.flexDirection = 'column';
+    wrapper.style.gap = rowGap + 'mm';
+  }
+
+  // Build rows as separate single-row tables for gap support
+  if (rowGap > 0) {
+    for (let r = 0; r < rows; r++) {
+      const table = document.createElement('table');
+      table.className = 'practice-grid charblock-practice-grid';
+      const tr = document.createElement('tr');
+      for (let c = 0; c < cols; c++) {
+        const td = buildCharBlockCell(cellSize, borderColor, borderOpacity, crossColor, crossOpacity, showCross, showDiagonal, guideChar, guideOpacity, r < guideFillRows);
+        tr.appendChild(td);
+      }
+      table.appendChild(tr);
+      wrapper.appendChild(table);
+    }
+  } else {
+    const table = document.createElement('table');
+    table.className = 'practice-grid charblock-practice-grid';
+    for (let r = 0; r < rows; r++) {
+      const tr = document.createElement('tr');
+      for (let c = 0; c < cols; c++) {
+        const td = buildCharBlockCell(cellSize, borderColor, borderOpacity, crossColor, crossOpacity, showCross, showDiagonal, guideChar, guideOpacity, r < guideFillRows);
+        tr.appendChild(td);
+      }
+      table.appendChild(tr);
+    }
+    wrapper.appendChild(table);
+  }
+
+  return wrapper;
+}
+
+function buildCharBlockCell(
+  cellSize: number,
+  borderColor: string, borderOpacity: number,
+  crossColor: string, crossOpacity: number,
+  showCross: boolean, showDiagonal: boolean,
+  guideChar: string, guideOpacity: number, showGuide: boolean
+): HTMLTableCellElement {
+  const td = document.createElement('td');
+  td.className = 'grid-cell';
+  td.style.width = cellSize + 'mm';
+  td.style.height = cellSize + 'mm';
+  td.style.borderColor = borderColor;
+  td.style.borderWidth = '1px';
+  if (borderOpacity < 1) {
+    td.style.borderColor = applyOpacity(borderColor, borderOpacity);
+  }
+
+  if (showCross) {
+    const crossH = document.createElement('div');
+    crossH.className = 'cross-h';
+    if (crossColor || crossOpacity < 1) {
+      crossH.style.borderTopColor = crossOpacity < 1 ? applyOpacity(crossColor || '#d4d4d4', crossOpacity) : crossColor;
+    }
+    const crossV = document.createElement('div');
+    crossV.className = 'cross-v';
+    if (crossColor || crossOpacity < 1) {
+      crossV.style.borderLeftColor = crossOpacity < 1 ? applyOpacity(crossColor || '#d4d4d4', crossOpacity) : crossColor;
+    }
+    td.appendChild(crossH);
+    td.appendChild(crossV);
+  }
+
+  if (showDiagonal) {
+    const diagL = document.createElement('div');
+    diagL.className = 'diag-left';
+    const diagR = document.createElement('div');
+    diagR.className = 'diag-right';
+    if (crossColor || crossOpacity < 1) {
+      const diagColor = crossOpacity < 1 ? applyOpacity(crossColor || '#d4d4d4', crossOpacity) : crossColor;
+      diagL.style.background = `linear-gradient(to bottom right, transparent calc(50% - 0.5px), ${diagColor} calc(50% - 0.5px), ${diagColor} calc(50% + 0.5px), transparent calc(50% + 0.5px))`;
+      diagR.style.background = `linear-gradient(to bottom left, transparent calc(50% - 0.5px), ${diagColor} calc(50% - 0.5px), ${diagColor} calc(50% + 0.5px), transparent calc(50% + 0.5px))`;
+    }
+    td.appendChild(diagL);
+    td.appendChild(diagR);
+  }
+
+  if (guideChar && showGuide) {
+    // Try to render SVG dashed guide from character data
+    const guideCharData = guideChar.length === 1 ? getCharacter(guideChar) : null;
+    if (guideCharData && guideCharData.strokes.length > 0) {
+      const guideDiv = document.createElement('div');
+      guideDiv.className = 'guide-char guide-char-svg';
+      guideDiv.innerHTML = generateGuideSVG(guideCharData, 100, Math.min(guideOpacity * 8, 1));
+      td.appendChild(guideDiv);
+    } else {
+      const span = document.createElement('span');
+      span.className = 'guide-char';
+      span.textContent = guideChar;
+      span.style.opacity = String(guideOpacity);
+      span.style.fontSize = (cellSize * 0.8) + 'mm';
+      td.appendChild(span);
+    }
+  }
+
+  return td;
+}
+
+/** Apply opacity to a hex color, returning rgba string */
+function applyOpacity(hex: string, opacity: number): string {
+  const r = parseInt(hex.slice(1, 3), 16) || 0;
+  const g = parseInt(hex.slice(3, 5), 16) || 0;
+  const b = parseInt(hex.slice(5, 7), 16) || 0;
+  return `rgba(${r}, ${g}, ${b}, ${opacity})`;
 }
 
 function renderGenericTable(el: HTMLElement, p: TableElementProps): void {
@@ -608,7 +1003,10 @@ export function updateElementDOM(el: HTMLElement, props: AnyElementProps): void 
 
   switch (props.type) {
     case 'text':       renderTextElement(el, props as TextElementProps); break;
+    case 'hanziText':  renderHanziText(el, props as HanziTextProps); break;
+    case 'strokeProgression': renderStrokeProgression(el, props as StrokeProgressionProps); break;
     case 'practiceGrid': renderPracticeGrid(el, props as PracticeGridProps); break;
+    case 'miGrid':     renderMiGrid(el, props as MiGridProps); break;
     case 'characterBlock': renderCharacterBlock(el, props as CharacterBlockProps); break;
     case 'table':      renderGenericTable(el, props as TableElementProps); break;
     case 'shape':      renderShape(el, props as ShapeElementProps); break;

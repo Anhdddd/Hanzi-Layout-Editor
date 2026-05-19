@@ -17,11 +17,14 @@ import {
 import { UndoRedo } from './editor/UndoRedo.ts';
 import { requireAuth, isAuthenticated, authFetch } from './auth/auth.ts';
 import { downloadPdf } from './pdf/pdfExport.ts';
+import { loadCharacters, getCharacter } from './data/characterService.ts';
 import sampleData from './data/sampleData.json';
 import sampleTemplate from './data/hanziWorkbookTemplate.json';
 import tripleTemplate from './data/hanziTriplePracticeTemplate.json';
 import minimalTemplate from './data/hanziMinimalTemplate.json';
 import flashcardTemplate from './data/hanziFlashcardTemplate.json';
+import strokeOrderTemplate from './data/hanziStrokeOrderTemplate.json';
+import compactDualTemplate from './data/hanziCompactDualTemplate.json';
 
 // ─── State ───
 const state: EditorState = {
@@ -39,8 +42,6 @@ const page = document.getElementById('a4-page')!;
 const panelContent = document.getElementById('panel-content')!;
 const canvasArea = document.getElementById('canvas-area')!;
 const statusElements = document.getElementById('status-elements')!;
-const dataPreview = document.getElementById('data-preview')!;
-const variableList = document.getElementById('variable-list')!;
 const printContainer = document.getElementById('print-container')!;
 const previewModal = document.getElementById('preview-modal')!;
 const previewPages = document.getElementById('preview-pages')!;
@@ -49,6 +50,9 @@ const itemsPerPageSelect = document.getElementById('tool-items-per-page') as HTM
 const designDataToggle = document.getElementById('tool-design-data-toggle') as HTMLInputElement;
 const templatePresetSelect = document.getElementById('tool-template-preset') as HTMLSelectElement;
 const layoutNameInput = document.getElementById('tool-layout-name') as HTMLInputElement;
+const charInputModal = document.getElementById('char-input-modal')!;
+const charInputTextarea = document.getElementById('char-input-textarea') as HTMLTextAreaElement;
+const charInputStatus = document.getElementById('char-input-status')!;
 
 // Track current layout ID (for save/update)
 let currentLayoutId: number | null = null;
@@ -58,6 +62,8 @@ const templatePresets: Record<string, { template: { elements?: AnyElementProps[]
   triple: { template: tripleTemplate as { elements?: AnyElementProps[] }, itemsPerPage: 3 },
   minimal: { template: minimalTemplate as { elements?: AnyElementProps[] }, itemsPerPage: 1 },
   flashcard: { template: flashcardTemplate as { elements?: AnyElementProps[] }, itemsPerPage: 2 },
+  strokeOrder: { template: strokeOrderTemplate as { elements?: AnyElementProps[] }, itemsPerPage: 1 },
+  compactDual: { template: compactDualTemplate as { elements?: AnyElementProps[] }, itemsPerPage: 2 },
 };
 
 // ═══════════════════════════════════════════
@@ -169,7 +175,7 @@ function initMoveable(): void {
 // ═══════════════════════════════════════════
 
 function isAutoHeightType(type: string, props?: AnyElementProps): boolean {
-  if (type === 'practiceGrid' || type === 'characterBlock') return true;
+  if (type === 'practiceGrid' || type === 'miGrid' || type === 'characterBlock') return true;
   if (type === 'table' && props && (props as TableElementProps).autoHeight) return true;
   return false;
 }
@@ -364,67 +370,53 @@ function refreshPropertyPanel(): void {
 
 function loadData(data: HanziDataItem[]): void {
   if (!Array.isArray(data) || data.length === 0) {
-    alert('Invalid data: expected a non-empty JSON array.');
     return;
   }
   state.dataArray = data;
   state.dataKeys = getVariableDescriptors(data);
 
-  // Preview
-  dataPreview.innerHTML = `
-    <p class="data-loaded-info">✓ Loaded <strong>${data.length}</strong> items</p>
-    <pre style="font-size:10px;color:#9ca0af;max-height:80px;overflow:auto;margin-top:4px">${
-      JSON.stringify(data[0], null, 2).substring(0, 200)
-    }…</pre>`;
-
-  // Build rich variable list
-  variableList.innerHTML = '';
-  state.dataKeys.forEach((v: VariableDescriptor) => {
-    const item = document.createElement('div');
-    item.className = 'variable-item';
-
-    const header = document.createElement('div');
-    header.className = 'variable-item-header';
-
-    const tag = document.createElement('button');
-    tag.className = 'variable-tag';
-    tag.textContent = `{{${v.key}}}`;
-    tag.title = 'Click to copy variable name';
-    tag.addEventListener('click', () => {
-      navigator.clipboard.writeText(`{{${v.key}}}`);
-      tag.textContent = '✓ Copied!';
-      setTimeout(() => { tag.textContent = `{{${v.key}}}`; }, 1200);
-    });
-
-    header.appendChild(tag);
-
-    if (v.isArray) {
-      const badge = document.createElement('span');
-      badge.className = 'variable-badge';
-      badge.textContent = 'array';
-      header.appendChild(badge);
-    }
-
-    item.appendChild(header);
-
-    const desc = document.createElement('div');
-    desc.className = 'variable-desc';
-    desc.textContent = v.description;
-    item.appendChild(desc);
-
-    if (v.sampleValue) {
-      const sample = document.createElement('div');
-      sample.className = 'variable-sample';
-      sample.textContent = `Ví dụ: ${v.sampleValue}`;
-      item.appendChild(sample);
-    }
-
-    variableList.appendChild(item);
-  });
-
   if (designDataToggle.checked) {
     renderCanvasWithDataPreview();
   }
+}
+
+/**
+ * Build data array from character input string.
+ * Each character is looked up in the characters database.
+ */
+function buildDataFromCharacters(chars: string): HanziDataItem[] {
+  const uniqueChars = [...new Set(chars.replace(/\s+/g, '').split(''))];
+  const items: HanziDataItem[] = [];
+
+  for (const ch of uniqueChars) {
+    const charData = getCharacter(ch);
+    if (charData) {
+      items.push({
+        character: charData.char,
+        pinyin: charData.pinyin || '',
+        han_viet: '',
+        meaning_vi: charData.vietnamese || '',
+        meaning_en: charData.def || '',
+        stroke_count: charData.strokeCount,
+        stroke_order: [],
+        stroke_progression: [],
+        radical: charData.radical || '',
+        vietnamese_meaning: charData.vietnameseMeaning || '',
+      });
+    } else {
+      // Character not in database, add with minimal info
+      items.push({
+        character: ch,
+        pinyin: '',
+        han_viet: '',
+        meaning_vi: '',
+        meaning_en: '',
+        vietnamese_meaning: '',
+      });
+    }
+  }
+
+  return items;
 }
 
 function getItemsPerPage(): number {
@@ -447,7 +439,17 @@ function getTemplateElementsForOutput(): AnyElementProps[] {
 }
 
 function renderCanvasWithDataPreview(): void {
-  if (!state.dataArray?.length) return;
+  // If no data loaded, auto-generate sample from default characters
+  if (!state.dataArray?.length) {
+    const sampleChars = '你好我';
+    const data = buildDataFromCharacters(sampleChars);
+    if (data.length > 0) {
+      state.dataArray = data as HanziDataItem[];
+      state.dataKeys = getVariableDescriptors(data as HanziDataItem[]);
+    } else {
+      return;
+    }
+  }
   const templateElements = Array.from(state.elements.values());
   const previewElements = prepareTemplateForDataPreview(templateElements, state.dataArray as Record<string, unknown>[]);
   state.elements.forEach((_, id) => document.getElementById(id)?.remove());
@@ -528,18 +530,84 @@ function buildGeneratedPageDOM(target: HTMLElement, preview = false): number {
   return pages.length;
 }
 
-function generateAndPrint(): void {
+// ─── Character Input Modal ───
+
+let pendingAction: 'preview' | 'print' | 'pdf' = 'preview';
+
+function openCharInputModal(action: 'preview' | 'print' | 'pdf'): void {
+  pendingAction = action;
+  charInputModal.classList.add('open');
+  charInputModal.setAttribute('aria-hidden', 'false');
+  charInputTextarea.focus();
+  updateCharInputStatus();
+}
+
+function closeCharInputModal(): void {
+  charInputModal.classList.remove('open');
+  charInputModal.setAttribute('aria-hidden', 'true');
+}
+
+function updateCharInputStatus(): void {
+  const text = charInputTextarea.value.replace(/\s+/g, '');
+  const uniqueChars = [...new Set(text.split(''))];
+  const found = uniqueChars.filter(ch => getCharacter(ch) !== null).length;
+  charInputStatus.textContent = `${uniqueChars.length} chữ (${found} có trong database)`;
+}
+
+function confirmCharInput(): void {
+  const text = charInputTextarea.value.trim();
+  if (!text) {
+    alert('Vui lòng nhập ít nhất 1 chữ.');
+    return;
+  }
+
+  // Build data from characters
+  const data = buildDataFromCharacters(text);
+  if (data.length === 0) {
+    alert('Không tìm thấy chữ nào hợp lệ.');
+    return;
+  }
+
+  state.dataArray = data as HanziDataItem[];
+  state.dataKeys = getVariableDescriptors(data as HanziDataItem[]);
+  closeCharInputModal();
+
+  // Use setTimeout to ensure DOM is ready
+  setTimeout(() => {
+    switch (pendingAction) {
+      case 'preview':
+        doOpenPreview();
+        break;
+      case 'print':
+        doGenerateAndPrint();
+        break;
+      case 'pdf':
+        doDownloadPdf();
+        break;
+    }
+  }, 50);
+}
+
+function doGenerateAndPrint(): void {
   const pageCount = buildGeneratedPageDOM(printContainer, false);
   if (!pageCount) return;
   setTimeout(() => window.print(), 300);
 }
 
-function openPreview(): void {
+function doOpenPreview(): void {
   const pageCount = buildGeneratedPageDOM(previewPages, true);
   if (!pageCount) return;
   previewCount.textContent = `${pageCount} page${pageCount === 1 ? '' : 's'}`;
   previewModal.classList.add('open');
   previewModal.setAttribute('aria-hidden', 'false');
+}
+
+function generateAndPrint(): void {
+  openCharInputModal('print');
+}
+
+function openPreview(): void {
+  openCharInputModal('preview');
 }
 
 function closePreview(): void {
@@ -747,7 +815,10 @@ function setupSidebar(): void {
   const $btn = (id: string) => document.getElementById(id)!;
 
   $btn('add-text-btn').addEventListener('click', () => addElement('text'));
+  $btn('add-hanzitext-btn').addEventListener('click', () => addElement('hanziText'));
+  $btn('add-strokeprog-btn').addEventListener('click', () => addElement('strokeProgression'));
   $btn('add-grid-btn').addEventListener('click', () => addElement('practiceGrid'));
+  $btn('add-migrid-btn').addEventListener('click', () => addElement('miGrid'));
   $btn('add-charblock-btn').addEventListener('click', () => addElement('characterBlock'));
   $btn('add-table-btn').addEventListener('click', () => addElement('table'));
   $btn('add-shape-btn').addEventListener('click', () => addElement('shape'));
@@ -770,23 +841,6 @@ function setupSidebar(): void {
     });
     input.click();
   });
-
-  $btn('btn-load-data').addEventListener('click', () =>
-    (document.getElementById('file-data-input') as HTMLInputElement).click()
-  );
-  (document.getElementById('file-data-input') as HTMLInputElement).addEventListener('change', (e) => {
-    const file = (e.target as HTMLInputElement).files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      try { loadData(JSON.parse(ev.target!.result as string)); }
-      catch (err: any) { alert('Invalid JSON: ' + err.message); }
-    };
-    reader.readAsText(file);
-    (e.target as HTMLInputElement).value = '';
-  });
-
-  $btn('btn-use-sample').addEventListener('click', () => loadData(sampleData as HanziDataItem[]));
 }
 
 // ═══════════════════════════════════════════
@@ -889,6 +943,10 @@ async function saveToCloud(): Promise<void> {
 }
 
 async function downloadPdfFromEditor(): Promise<void> {
+  openCharInputModal('pdf');
+}
+
+async function doDownloadPdf(): Promise<void> {
   const templateElements = getTemplateElementsForOutput();
   if (templateElements.length === 0) {
     alert('Không có element nào trên template.');
@@ -962,6 +1020,7 @@ function init(): void {
   setupToolbar();
   setupSidebar();
   setupKeyboard();
+  setupCharInputModal();
   page.addEventListener('mousedown', (e) => {
     if (e.target === page) deselectAll();
   });
@@ -971,6 +1030,17 @@ function init(): void {
   // Cloud save & PDF download buttons
   document.getElementById('tool-save-cloud')!.addEventListener('click', saveToCloud);
   document.getElementById('tool-download-pdf')!.addEventListener('click', downloadPdfFromEditor);
+
+  // Load characters database
+  loadCharacters().then(() => {
+    console.log('✓ Characters database loaded');
+    const charStatus = document.getElementById('char-db-status');
+    if (charStatus) charStatus.textContent = '✓ 3000+ chữ sẵn sàng';
+  }).catch(err => {
+    console.error('Failed to load characters:', err);
+    const charStatus = document.getElementById('char-db-status');
+    if (charStatus) charStatus.textContent = '✗ Lỗi tải dữ liệu chữ';
+  });
 
   // Check URL params for layout loading
   const urlParams = new URLSearchParams(window.location.search);
@@ -988,6 +1058,34 @@ function init(): void {
   }
 
   console.log('Hanzi Layout Editor initialized ✓');
+}
+
+function setupCharInputModal(): void {
+  charInputTextarea.addEventListener('input', updateCharInputStatus);
+  document.getElementById('char-input-confirm')!.addEventListener('click', confirmCharInput);
+  document.getElementById('char-input-cancel')!.addEventListener('click', closeCharInputModal);
+
+  // Load from .txt file
+  const loadTxtBtn = document.getElementById('char-input-load-txt')!;
+  const fileInput = document.getElementById('char-input-file') as HTMLInputElement;
+  loadTxtBtn.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', () => {
+    const file = fileInput.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const text = ev.target!.result as string;
+      charInputTextarea.value = text.trim();
+      updateCharInputStatus();
+    };
+    reader.readAsText(file);
+    fileInput.value = '';
+  });
+
+  // Close on backdrop click
+  charInputModal.addEventListener('click', (e) => {
+    if (e.target === charInputModal) closeCharInputModal();
+  });
 }
 
 if (document.readyState === 'loading') {

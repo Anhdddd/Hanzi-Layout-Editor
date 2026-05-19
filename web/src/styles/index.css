@@ -2,6 +2,15 @@
    Design System — Hanzi Layout Editor
    ============================================ */
 
+/* Custom Font: LXGW WenKai */
+@font-face {
+  font-family: 'LXGW WenKai';
+  src: url('../assets/LXGWWenKai-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   /* Colors */
   --color-bg: #0f1117;
@@ -43,7 +52,7 @@
   
   /* Typography */
   --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-chinese: 'Noto Sans SC', 'Microsoft YaHei', 'SimHei', sans-serif;
+  --font-chinese: 'LXGW WenKai', 'Noto Sans SC', 'Microsoft YaHei', 'SimHei', sans-serif;
   --font-chinese-serif: 'Noto Serif SC', 'SimSun', serif;
   
   /* Spacing */

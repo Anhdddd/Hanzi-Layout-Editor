@@ -102,6 +102,8 @@ const THUMB_ICONS: Record<string, string> = {
   '3 Words Practice': '✍️',
   'Minimal': '📄',
   'Flashcard': '🃏',
+  'Stroke Order Focus': '🖊️',
+  'Compact Dual': '📑',
 };
 
 function renderCard(layout: LayoutItem, isSample: boolean): string {
@@ -113,12 +115,10 @@ function renderCard(layout: LayoutItem, isSample: boolean): string {
 
   const actions = isSample
     ? `<div class="card-actions">
-        <button class="card-action-btn btn-pdf" title="Tải PDF" data-action="pdf" data-id="${layout.id}">📥</button>
-        <button class="card-action-btn" title="Dùng làm mẫu" data-action="use" data-id="${layout.id}">📋</button>
+        <button class="card-action-btn btn-use-sample" title="Dùng làm mẫu" data-action="use" data-id="${layout.id}">📋 Dùng mẫu</button>
        </div>`
     : `<div class="card-actions">
         <button class="card-action-btn" title="Chỉnh sửa" data-action="edit" data-id="${layout.id}">✏️</button>
-        <button class="card-action-btn btn-pdf" title="Tải PDF" data-action="pdf" data-id="${layout.id}">📥</button>
         <button class="card-action-btn btn-danger" title="Xóa" data-action="delete" data-id="${layout.id}">🗑</button>
        </div>`;
 
@@ -147,20 +147,21 @@ function attachCardListeners(container: HTMLElement, isSample: boolean): void {
       const id = parseInt((btn as HTMLElement).dataset.id || '0');
       if (action === 'edit') handleEdit(id);
       if (action === 'delete') handleDelete(id);
-      if (action === 'pdf') handleDownloadPdf(id);
       if (action === 'use') handleUseSample(id);
     });
   });
 
-  // Click card to edit (only for user layouts)
-  if (!isSample) {
-    container.querySelectorAll('.layout-card').forEach(card => {
-      card.addEventListener('click', () => {
-        const id = parseInt((card as HTMLElement).dataset.layoutId || '0');
+  // Click card to edit/use
+  container.querySelectorAll('.layout-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const id = parseInt((card as HTMLElement).dataset.layoutId || '0');
+      if (isSample) {
+        handleUseSample(id);
+      } else {
         handleEdit(id);
-      });
+      }
     });
-  }
+  });
 }
 
 // ─── Actions ───

@@ -5,8 +5,9 @@
 .dashboard {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  height: 100vh;
   background: var(--color-bg);
+  overflow: hidden;
 }
 
 /* ─── Header ─── */
@@ -313,10 +314,21 @@
   border-color: rgba(239, 68, 68, 0.3);
 }
 
-.card-action-btn.btn-pdf:hover {
-  background: rgba(16, 185, 129, 0.1);
-  color: var(--color-success);
-  border-color: rgba(16, 185, 129, 0.3);
+.card-action-btn.btn-use-sample {
+  width: auto;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  gap: 4px;
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.3);
+  color: var(--color-accent);
+}
+
+.card-action-btn.btn-use-sample:hover {
+  background: rgba(245, 158, 11, 0.2);
+  border-color: var(--color-accent);
+  color: var(--color-accent-hover);
 }
 
 /* ─── Empty State ─── */

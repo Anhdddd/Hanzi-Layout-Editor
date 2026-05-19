@@ -4,7 +4,7 @@
  */
 import type {
   AnyElementProps, TextElementProps, PracticeGridProps,
-  CharacterBlockProps, TableElementProps, ShapeElementProps,
+  MiGridProps, HanziTextProps, StrokeProgressionProps, CharacterBlockProps, TableElementProps, ShapeElementProps,
   ImageElementProps, CalloutElementProps, DividerElementProps,
   ChecklistElementProps
 } from '../types.ts';
@@ -49,7 +49,10 @@ export function renderPropertyPanel(
   // Type-specific
   switch (props.type) {
     case 'text':           html += textProps(props); break;
+    case 'hanziText':      html += hanziTextProps(props as HanziTextProps); break;
+    case 'strokeProgression': html += strokeProgressionProps(props as StrokeProgressionProps); break;
     case 'practiceGrid':   html += gridProps(props); break;
+    case 'miGrid':         html += miGridProps(props); break;
     case 'characterBlock': html += charBlockProps(props); break;
     case 'table':          html += tableProps(props); break;
     case 'shape':          html += shapeProps(props); break;
@@ -88,6 +91,7 @@ function textProps(p: TextElementProps): string {
       <div class="prop-row">
         <span class="prop-label">Font</span>
         <select class="prop-select" data-prop="fontFamily">
+          ${fontOpt(p.fontFamily, 'LXGW WenKai')}
           ${fontOpt(p.fontFamily, 'Noto Sans SC')}
           ${fontOpt(p.fontFamily, 'Noto Serif SC')}
           ${fontOpt(p.fontFamily, 'Inter')}
@@ -130,6 +134,96 @@ function textProps(p: TextElementProps): string {
     </div>`;
 }
 
+function hanziTextProps(p: HanziTextProps): string {
+  return `
+    <div class="prop-group">
+      <div class="prop-group-title">Hanzi Content</div>
+      <textarea class="prop-textarea" data-prop="content" placeholder="Nhập chữ Hán tự..." style="min-height:80px;font-size:18px;letter-spacing:2px">${esc(p.content)}</textarea>
+    </div>
+    <div class="prop-group">
+      <div class="prop-group-title">Display</div>
+      <div class="prop-row">
+        <span class="prop-label">Size</span>
+        <input type="number" class="prop-input prop-input-sm" data-prop="charSize" value="${p.charSize}" min="8" max="120" />
+        <span class="prop-label">pt</span>
+      </div>
+      <div class="prop-row">
+        <span class="prop-label">Gap</span>
+        <input type="number" class="prop-input prop-input-sm" data-prop="charGap" value="${p.charGap}" min="0" max="20" step="0.5" />
+        <span class="prop-label">mm</span>
+      </div>
+      <div class="prop-row">
+        <span class="prop-label">Color</span>
+        <input type="color" class="prop-color" data-prop="color" value="${p.color}" />
+      </div>
+      <div class="prop-row">
+        <span class="prop-label">Line H</span>
+        <input type="number" class="prop-input prop-input-sm" data-prop="lineHeight" value="${p.lineHeight}" min="0.8" max="3" step="0.1" />
+      </div>
+    </div>`;
+}
+
+function strokeProgressionProps(p: StrokeProgressionProps): string {
+  return `
+    <div class="prop-group">
+      <div class="prop-group-title">Character</div>
+      <div class="prop-row">
+        <span class="prop-label">Char</span>
+        <input type="text" class="prop-input" data-prop="character" value="${esc(p.character)}" placeholder="你 or {{character}}" />
+      </div>
+    </div>
+    <div class="prop-group">
+      <div class="prop-group-title">Step Display</div>
+      <div class="prop-row">
+        <span class="prop-label">Size</span>
+        <input type="number" class="prop-input prop-input-sm" data-prop="stepSize" value="${p.stepSize}" min="8" max="80" />
+        <span class="prop-label">pt</span>
+      </div>
+      <div class="prop-row">
+        <span class="prop-label">Gap</span>
+        <input type="number" class="prop-input prop-input-sm" data-prop="stepGap" value="${p.stepGap}" min="0" max="20" step="0.5" />
+        <span class="prop-label">mm</span>
+      </div>
+    </div>
+    <div class="prop-group">
+      <div class="prop-group-title">Colors</div>
+      <div class="prop-row">
+        <span class="prop-label">Done</span>
+        <input type="color" class="prop-color" data-prop="completedColor" value="${p.completedColor}" />
+        <span class="prop-label">Active</span>
+        <input type="color" class="prop-color" data-prop="activeColor" value="${p.activeColor}" />
+      </div>
+    </div>
+    <div class="prop-group">
+      <div class="prop-group-title">Full Character</div>
+      <div class="prop-row">
+        <label class="prop-checkbox">
+          <input type="checkbox" data-prop="showFullCharFirst" ${p.showFullCharFirst ? 'checked' : ''} />
+          <span>Show full char first</span>
+        </label>
+      </div>
+      <div class="prop-row">
+        <span class="prop-label">Color</span>
+        <input type="color" class="prop-color" data-prop="fullCharColor" value="${p.fullCharColor}" />
+      </div>
+    </div>
+    <div class="prop-group">
+      <div class="prop-group-title">Step Numbers</div>
+      <div class="prop-row">
+        <label class="prop-checkbox">
+          <input type="checkbox" data-prop="showStepNumbers" ${p.showStepNumbers ? 'checked' : ''} />
+          <span>Show numbers</span>
+        </label>
+      </div>
+      <div class="prop-row">
+        <span class="prop-label">Size</span>
+        <input type="number" class="prop-input prop-input-sm" data-prop="numberFontSize" value="${p.numberFontSize}" min="5" max="24" />
+        <span class="prop-label">Color</span>
+        <input type="color" class="prop-color" data-prop="numberColor" value="${p.numberColor}" />
+      </div>
+    </div>`;
+}
+
 function gridProps(p: PracticeGridProps): string {
   return `
     <div class="prop-group">
@@ -149,6 +243,58 @@ function gridProps(p: PracticeGridProps): string {
         <label class="prop-checkbox">
           <input type="checkbox" data-prop="showCrossLines" ${p.showCrossLines ? 'checked' : ''} />
           <span>Show cross lines (田字格)</span>
+        </label>
+      </div>
+    </div>
+    <div class="prop-group">
+      <div class="prop-group-title">Guide Character</div>
+      <div class="prop-row">
+        <span class="prop-label">Char</span>
+        <input type="text" class="prop-input" data-prop="guideCharacter" value="${esc(p.guideCharacter)}" placeholder="e.g. 你 or {{character}}" />
+      </div>
+      <div class="prop-row">
+        <span class="prop-label">Opacity</span>
+        <input type="number" class="prop-input prop-input-sm" data-prop="guideOpacity" value="${p.guideOpacity}" min="0.01" max="0.5" step="0.01" />
+      </div>
+      <div class="prop-row">
+        <span class="prop-label">Fill rows</span>
+        <input type="number" class="prop-input prop-input-sm" data-prop="guideFillRows" value="${p.guideFillRows}" min="0" max="20" />
+      </div>
+    </div>
+    <div class="prop-group">
+      <div class="prop-group-title">Border</div>
+      <div class="prop-row">
+        <span class="prop-label">Color</span>
+        <input type="color" class="prop-color" data-prop="borderColor" value="${p.borderColor}" />
+      </div>
+    </div>`;
+}
+
+function miGridProps(p: MiGridProps): string {
+  return `
+    <div class="prop-group">
+      <div class="prop-group-title">米字格 Settings</div>
+      <div class="prop-row">
+        <span class="prop-label">Rows</span>
+        <input type="number" class="prop-input prop-input-sm" data-prop="rows" value="${p.rows}" min="1" max="20" />
+        <span class="prop-label">Cols</span>
+        <input type="number" class="prop-input prop-input-sm" data-prop="cols" value="${p.cols}" min="1" max="20" />
+      </div>
+      <div class="prop-row">
+        <span class="prop-label">Cell</span>
+        <input type="number" class="prop-input prop-input-sm" data-prop="cellSize" value="${p.cellSize}" min="5" max="40" step="0.5" />
+        <span class="prop-label">mm</span>
+      </div>
+      <div class="prop-row">
+        <label class="prop-checkbox">
+          <input type="checkbox" data-prop="showCrossLines" ${p.showCrossLines ? 'checked' : ''} />
+          <span>Cross lines (十)</span>
+        </label>
+      </div>
+      <div class="prop-row">
+        <label class="prop-checkbox">
+          <input type="checkbox" data-prop="showDiagonalLines" ${p.showDiagonalLines ? 'checked' : ''} />
+          <span>Diagonal lines (✕)</span>
         </label>
       </div>
     </div>
@@ -216,6 +362,13 @@ function charBlockProps(p: CharacterBlockProps): string {
     <div class="prop-group">
       <div class="prop-group-title">Practice Grid</div>
       <div class="prop-row">
+        <span class="prop-label">Type</span>
+        <select class="prop-select" data-prop="gridType">
+          <option value="tian" ${p.gridType === 'tian' ? 'selected' : ''}>田字格 (Cross)</option>
+          <option value="mi" ${p.gridType === 'mi' ? 'selected' : ''}>米字格 (Cross + Diagonal)</option>
+        </select>
+      </div>
+      <div class="prop-row">
         <span class="prop-label">Rows</span>
         <input type="number" class="prop-input prop-input-sm" data-prop="gridRows" value="${p.gridRows}" min="1" max="10" />
         <span class="prop-label">Cols</span>
@@ -227,11 +380,43 @@ function charBlockProps(p: CharacterBlockProps): string {
         <span class="prop-label">mm</span>
       </div>
       <div class="prop-row">
+        <span class="prop-label">Row gap</span>
+        <input type="number" class="prop-input prop-input-sm" data-prop="gridRowGap" value="${p.gridRowGap}" min="0" max="10" step="0.5" />
+        <span class="prop-label">mm</span>
+      </div>
+      <div class="prop-row">
         <label class="prop-checkbox">
           <input type="checkbox" data-prop="gridShowCross" ${p.gridShowCross ? 'checked' : ''} />
-          <span>Cross lines</span>
+          <span>Cross lines (十)</span>
         </label>
       </div>
+      <div class="prop-row">
+        <label class="prop-checkbox">
+          <input type="checkbox" data-prop="gridShowDiagonal" ${p.gridShowDiagonal ? 'checked' : ''} />
+          <span>Diagonal lines (✕)</span>
+        </label>
+      </div>
+    </div>
+    <div class="prop-group">
+      <div class="prop-group-title">Grid Border</div>
+      <div class="prop-row">
+        <span class="prop-label">Color</span>
+        <input type="color" class="prop-color" data-prop="gridBorderColor" value="${p.gridBorderColor}" />
+        <span class="prop-label">Opacity</span>
+        <input type="number" class="prop-input prop-input-sm" data-prop="gridBorderOpacity" value="${p.gridBorderOpacity}" min="0" max="1" step="0.05" />
+      </div>
+    </div>
+    <div class="prop-group">
+      <div class="prop-group-title">Grid Lines (Cross/Diagonal)</div>
+      <div class="prop-row">
+        <span class="prop-label">Color</span>
+        <input type="color" class="prop-color" data-prop="gridCrossColor" value="${p.gridCrossColor}" />
+        <span class="prop-label">Opacity</span>
+        <input type="number" class="prop-input prop-input-sm" data-prop="gridCrossOpacity" value="${p.gridCrossOpacity}" min="0" max="1" step="0.05" />
+      </div>
+    </div>
+    <div class="prop-group">
+      <div class="prop-group-title">Guide Character</div>
       <div class="prop-row">
         <span class="prop-label">Guide</span>
         <input type="number" class="prop-input prop-input-sm" data-prop="gridGuideOpacity" value="${p.gridGuideOpacity}" min="0" max="0.5" step="0.01" />
@@ -267,6 +452,7 @@ function tableProps(p: TableElementProps): string {
       <div class="prop-row">
         <span class="prop-label">Font</span>
         <select class="prop-select" data-prop="fontFamily">
+          ${fontOpt(p.fontFamily, 'LXGW WenKai')}
           ${fontOpt(p.fontFamily, 'Noto Sans SC')}
           ${fontOpt(p.fontFamily, 'Noto Serif SC')}
           ${fontOpt(p.fontFamily, 'Inter')}

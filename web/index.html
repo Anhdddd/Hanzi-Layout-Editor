@@ -29,6 +29,7 @@
 
       <div class="toolbar-group" id="format-tools">
         <select id="tool-font-family" class="toolbar-select" title="Font">
+          <option value="LXGW WenKai">LXGW WenKai</option>
           <option value="Noto Sans SC">Noto Sans SC</option>
           <option value="Noto Serif SC">Noto Serif SC</option>
           <option value="Inter">Inter</option>
@@ -90,6 +91,8 @@
             <option value="triple">3 Words</option>
             <option value="minimal">Minimal</option>
             <option value="flashcard">Flashcard</option>
+            <option value="strokeOrder">Stroke Order</option>
+            <option value="compactDual">Compact 2x</option>
           </select>
         </label>
         <input type="text" id="tool-layout-name" class="toolbar-input-text" placeholder="Tên layout..." value="" title="Layout name" style="width:140px;" />
@@ -114,9 +117,21 @@
               <span class="add-icon">T</span>
               <span>Text</span>
             </button>
+            <button class="sidebar-add-btn" data-type="hanziText" id="add-hanzitext-btn">
+              <span class="add-icon">漢</span>
+              <span>Hanzi Text (SVG)</span>
+            </button>
+            <button class="sidebar-add-btn" data-type="strokeProgression" id="add-strokeprog-btn">
+              <span class="add-icon">筆</span>
+              <span>Stroke Progression</span>
+            </button>
             <button class="sidebar-add-btn" data-type="practiceGrid" id="add-grid-btn">
               <span class="add-icon">田</span>
               <span>Practice Grid</span>
+            </button>
+            <button class="sidebar-add-btn" data-type="miGrid" id="add-migrid-btn">
+              <span class="add-icon">米</span>
+              <span>Mi Grid (米字格)</span>
             </button>
             <button class="sidebar-add-btn" data-type="characterBlock" id="add-charblock-btn">
               <span class="add-icon">字</span>
@@ -150,21 +165,43 @@
         </div>
 
         <div class="sidebar-section">
-          <h3 class="sidebar-title">📊 Data Source</h3>
+          <h3 class="sidebar-title">📊 Character Database</h3>
           <div class="sidebar-data">
-            <button id="btn-load-data" class="sidebar-action-btn">📁 Import JSON Data</button>
-            <input type="file" id="file-data-input" accept=".json" style="display:none" />
-            <div id="data-preview" class="data-preview">
-              <p class="data-placeholder">No data loaded. Import a JSON file or use sample data.</p>
-            </div>
-            <button id="btn-use-sample" class="sidebar-action-btn sidebar-action-secondary">📝 Use Sample Data</button>
+            <p id="char-db-status" class="data-placeholder">⏳ Đang tải dữ liệu chữ...</p>
           </div>
         </div>
 
         <div class="sidebar-section">
           <h3 class="sidebar-title">🏷 Template Variables</h3>
-          <div id="variable-list" class="variable-list">
-            <p class="data-placeholder">Load data to see available variables</p>
+          <div class="variable-list">
+            <div class="variable-item">
+              <div class="variable-item-header"><button class="variable-tag" onclick="navigator.clipboard.writeText('{{character}}')">{{character}}</button></div>
+              <div class="variable-desc">Chữ Hán tự</div>
+            </div>
+            <div class="variable-item">
+              <div class="variable-item-header"><button class="variable-tag" onclick="navigator.clipboard.writeText('{{pinyin}}')">{{pinyin}}</button></div>
+              <div class="variable-desc">Phiên âm pinyin</div>
+            </div>
+            <div class="variable-item">
+              <div class="variable-item-header"><button class="variable-tag" onclick="navigator.clipboard.writeText('{{meaning_vi}}')">{{meaning_vi}}</button></div>
+              <div class="variable-desc">Nghĩa tiếng Việt (đầy đủ)</div>
+            </div>
+            <div class="variable-item">
+              <div class="variable-item-header"><button class="variable-tag" onclick="navigator.clipboard.writeText('{{vietnamese_meaning}}')">{{vietnamese_meaning}}</button></div>
+              <div class="variable-desc">Nghĩa tiếng Việt (ngắn gọn)</div>
+            </div>
+            <div class="variable-item">
+              <div class="variable-item-header"><button class="variable-tag" onclick="navigator.clipboard.writeText('{{radical}}')">{{radical}}</button></div>
+              <div class="variable-desc">Bộ thủ</div>
+            </div>
+            <div class="variable-item">
+              <div class="variable-item-header"><button class="variable-tag" onclick="navigator.clipboard.writeText('{{stroke_count}}')">{{stroke_count}}</button></div>
+              <div class="variable-desc">Số nét</div>
+            </div>
+            <div class="variable-item">
+              <div class="variable-item-header"><button class="variable-tag" onclick="navigator.clipboard.writeText('{{meaning_en}}')">{{meaning_en}}</button></div>
+              <div class="variable-desc">Nghĩa tiếng Anh</div>
+            </div>
           </div>
         </div>
 
@@ -227,6 +264,28 @@
       </div>
     </div>
     <div id="preview-pages" class="preview-pages"></div>
+  </div>
+
+  <!-- Character Input Modal -->
+  <div id="char-input-modal" class="char-input-modal" aria-hidden="true">
+    <div class="char-input-dialog">
+      <div class="char-input-header">
+        <h3>✍️ Nhập chữ cần in</h3>
+        <p class="char-input-hint">Nhập các chữ Hán tự hoặc tải từ file .txt. Mỗi chữ sẽ tạo 1 trang.</p>
+      </div>
+      <div class="char-input-load-file">
+        <button id="char-input-load-txt" class="toolbar-btn-outlined" style="width:100%">📂 Tải từ file .txt</button>
+        <input type="file" id="char-input-file" accept=".txt" style="display:none" />
+      </div>
+      <textarea id="char-input-textarea" class="char-input-textarea" placeholder="Ví dụ: 你好我是学生&#10;&#10;Nhập liền hoặc cách nhau bằng dấu cách, mỗi chữ = 1 trang" rows="5"></textarea>
+      <div class="char-input-footer">
+        <span id="char-input-status" class="char-input-status">0 chữ</span>
+        <div class="char-input-actions">
+          <button id="char-input-cancel" class="toolbar-btn-outlined">Hủy</button>
+          <button id="char-input-confirm" class="toolbar-btn-primary">Xác nhận</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Hidden file input for template loading -->

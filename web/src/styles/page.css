@@ -55,6 +55,56 @@
   cursor: text;
 }
 
+/* Hanzi Text Element (SVG characters) */
+.page-element[data-type="hanziText"] {
+  overflow: visible;
+}
+
+.hanzi-text-wrapper {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+
+.hanzi-text-char {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.hanzi-text-char svg {
+  display: block;
+}
+
+.hanzi-text-fallback {
+  font-family: var(--font-chinese);
+  font-weight: 700;
+}
+
+/* Stroke Progression Element */
+.stroke-progression-wrapper {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.stroke-step {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stroke-step svg {
+  display: block;
+}
+
+.stroke-step-num {
+  text-align: center;
+  font-family: var(--font-ui);
+  margin-top: 1px;
+}
+
 /* Practice Grid */
 .practice-grid-container {
   display: inline-block;
@@ -101,6 +151,37 @@
   border-left: 1px dashed var(--grid-cross);
 }
 
+/* Diagonal lines inside grid cell (米字格) */
+.grid-cell .diag-left,
+.grid-cell .diag-right {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.grid-cell .diag-left {
+  background: linear-gradient(
+    to bottom right,
+    transparent calc(50% - 0.5px),
+    var(--grid-cross) calc(50% - 0.5px),
+    var(--grid-cross) calc(50% + 0.5px),
+    transparent calc(50% + 0.5px)
+  );
+}
+
+.grid-cell .diag-right {
+  background: linear-gradient(
+    to bottom left,
+    transparent calc(50% - 0.5px),
+    var(--grid-cross) calc(50% - 0.5px),
+    var(--grid-cross) calc(50% + 0.5px),
+    transparent calc(50% + 0.5px)
+  );
+}
+
 /* Guide character (faint) */
 .grid-cell .guide-char {
   position: absolute;
@@ -112,6 +193,27 @@
   pointer-events: none;
   line-height: 1;
   z-index: 0;
+}
+
+/* Guide character SVG (dashed stroke) */
+.grid-cell .guide-char-svg {
+  position: absolute;
+  top: 55%;
+  left: 50%;
+  width: 88%;
+  height: 88%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0;
+}
+
+.grid-cell .guide-char-svg svg {
+  width: 100%;
+  height: 100%;
 }
 
 /* Character Block (compound element) */
@@ -136,6 +238,12 @@
   font-weight: 700;
   line-height: 1;
   color: #000;
+  display: inline-flex;
+  align-items: flex-end;
+}
+
+.character-block .char-main svg {
+  display: block;
 }
 
 .character-block .char-strokes {
@@ -149,6 +257,12 @@
   line-height: 1.2;
   overflow: hidden;
   max-width: 100%;
+}
+
+.character-block .char-strokes svg {
+  display: inline-block;
+  vertical-align: bottom;
+  flex-shrink: 0;
 }
 
 .character-block .char-info {

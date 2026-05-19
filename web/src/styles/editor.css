@@ -78,3 +78,92 @@
   pointer-events: none;
 }
 
+
+/* ============================================
+   Character Input Modal
+   ============================================ */
+
+.char-input-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  align-items: center;
+  justify-content: center;
+}
+
+.char-input-modal.open {
+  display: flex;
+}
+
+.char-input-dialog {
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  padding: 24px;
+  width: 480px;
+  max-width: 90vw;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.char-input-header h3 {
+  margin: 0 0 4px;
+  font-size: 16px;
+  color: var(--color-text);
+}
+
+.char-input-hint {
+  margin: 0 0 16px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.char-input-textarea {
+  width: 100%;
+  min-height: 120px;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-bg-surface);
+  color: var(--color-text);
+  font-size: 18px;
+  font-family: var(--font-chinese);
+  letter-spacing: 2px;
+  line-height: 1.8;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.char-input-load-file {
+  margin-bottom: 12px;
+}
+
+.char-input-textarea:focus {
+  border-color: var(--color-primary);
+}
+
+.char-input-textarea::placeholder {
+  font-size: 13px;
+  letter-spacing: 0;
+  color: var(--color-text-muted);
+}
+
+.char-input-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 16px;
+}
+
+.char-input-status {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.char-input-actions {
+  display: flex;
+  gap: 8px;
+}
