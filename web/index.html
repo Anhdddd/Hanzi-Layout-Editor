@@ -80,6 +80,13 @@
             <option value="4">4</option>
           </select>
         </label>
+        <label class="toolbar-mini-control" title="Output page size: A4 normal or A5 booklet (2 pages on 1 A4 landscape)">
+          <span>Page</span>
+          <select id="tool-page-size" class="toolbar-select toolbar-select-sm">
+            <option value="A4">A4</option>
+            <option value="A5">A5 Booklet</option>
+          </select>
+        </label>
         <label class="toolbar-mini-control" title="Show sample data on canvas instead of raw {{variables}}">
           <input type="checkbox" id="tool-design-data-toggle" />
           <span>Data View</span>
@@ -93,6 +100,8 @@
             <option value="flashcard">Flashcard</option>
             <option value="strokeOrder">Stroke Order</option>
             <option value="compactDual">Compact 2x</option>
+            <option value="classroom">Classroom 4x</option>
+            <option value="calligraphy">Calligraphy</option>
           </select>
         </label>
         <input type="text" id="tool-layout-name" class="toolbar-input-text" placeholder="Tên layout..." value="" title="Layout name" style="width:140px;" />
@@ -102,7 +111,6 @@
         <button id="tool-load-sample-template" class="toolbar-btn-outlined" title="Load Selected Sample Template" style="display:none;">✨ Load Sample</button>
         <button id="tool-preview" class="toolbar-btn-outlined" title="Preview Pages">👁 Preview</button>
         <button id="tool-download-pdf" class="toolbar-btn-primary" title="Tải file PDF" style="background:linear-gradient(135deg,#10b981,#34d399);">📥 PDF</button>
-        <button id="tool-generate" class="toolbar-btn-outlined" title="Generate & Print" style="display:none;">🖨 Print</button>
       </div>
     </header>
 
@@ -173,32 +181,32 @@
 
         <div class="sidebar-section">
           <h3 class="sidebar-title">🏷 Template Variables</h3>
-          <div class="variable-list">
-            <div class="variable-item">
+          <div class="variable-list" id="variable-list">
+            <div class="variable-item" data-variable="{{character}}">
               <div class="variable-item-header"><button class="variable-tag" onclick="navigator.clipboard.writeText('{{character}}')">{{character}}</button></div>
               <div class="variable-desc">Chữ Hán tự</div>
             </div>
-            <div class="variable-item">
+            <div class="variable-item" data-variable="{{pinyin}}">
               <div class="variable-item-header"><button class="variable-tag" onclick="navigator.clipboard.writeText('{{pinyin}}')">{{pinyin}}</button></div>
               <div class="variable-desc">Phiên âm pinyin</div>
             </div>
-            <div class="variable-item">
+            <div class="variable-item" data-variable="{{meaning_vi}}">
               <div class="variable-item-header"><button class="variable-tag" onclick="navigator.clipboard.writeText('{{meaning_vi}}')">{{meaning_vi}}</button></div>
               <div class="variable-desc">Nghĩa tiếng Việt (đầy đủ)</div>
             </div>
-            <div class="variable-item">
+            <div class="variable-item" data-variable="{{vietnamese_meaning}}">
               <div class="variable-item-header"><button class="variable-tag" onclick="navigator.clipboard.writeText('{{vietnamese_meaning}}')">{{vietnamese_meaning}}</button></div>
               <div class="variable-desc">Nghĩa tiếng Việt (ngắn gọn)</div>
             </div>
-            <div class="variable-item">
+            <div class="variable-item" data-variable="{{radical}}">
               <div class="variable-item-header"><button class="variable-tag" onclick="navigator.clipboard.writeText('{{radical}}')">{{radical}}</button></div>
               <div class="variable-desc">Bộ thủ</div>
             </div>
-            <div class="variable-item">
+            <div class="variable-item" data-variable="{{stroke_count}}">
               <div class="variable-item-header"><button class="variable-tag" onclick="navigator.clipboard.writeText('{{stroke_count}}')">{{stroke_count}}</button></div>
               <div class="variable-desc">Số nét</div>
             </div>
-            <div class="variable-item">
+            <div class="variable-item" data-variable="{{meaning_en}}">
               <div class="variable-item-header"><button class="variable-tag" onclick="navigator.clipboard.writeText('{{meaning_en}}')">{{meaning_en}}</button></div>
               <div class="variable-desc">Nghĩa tiếng Anh</div>
             </div>
@@ -249,17 +257,15 @@
     </main>
   </div>
 
-  <!-- Hidden: Generated pages container for printing -->
-  <div id="print-container" class="print-container"></div>
-
   <div id="preview-modal" class="preview-modal" aria-hidden="true">
     <div class="preview-header">
       <div>
         <strong>Print Preview</strong>
         <span id="preview-count">0 pages</span>
+        <span id="preview-page-size-info" class="preview-size-badge"></span>
       </div>
       <div class="preview-actions">
-        <button id="preview-print" class="toolbar-btn-primary">🖨 Print</button>
+        <button id="preview-print" class="toolbar-btn-primary">📥 PDF</button>
         <button id="preview-close" class="toolbar-btn-outlined">Close</button>
       </div>
     </div>

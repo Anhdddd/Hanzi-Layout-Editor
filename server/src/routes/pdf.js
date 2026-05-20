@@ -9,23 +9,24 @@ router.use(authMiddleware);
 
 /**
  * POST /api/pdf/generate
- * Body: { templateElements, dataArray, itemsPerPage }
+ * Body: { pagesHtml, pageSize }
+ * - pagesHtml: Pre-rendered HTML from the client (contains all pages with SVGs, grids, etc.)
+ * - pageSize: 'A4' or 'A5' (booklet mode)
  * Returns: PDF file as binary download
  */
 router.post('/generate', async (req, res) => {
   try {
-    const { templateElements, dataArray, itemsPerPage } = req.body;
+    const { pagesHtml, pageSize } = req.body;
 
-    if (!templateElements || !Array.isArray(templateElements) || templateElements.length === 0) {
-      return res.status(400).json({ error: 'templateElements is required and must be a non-empty array' });
+    if (!pagesHtml || typeof pagesHtml !== 'string') {
+      return res.status(400).json({ error: 'pagesHtml is required and must be a string' });
     }
 
-    console.log(`[PDF] Generating PDF: ${templateElements.length} elements, ${(dataArray || []).length} data items, ${itemsPerPage || 1} items/page`);
+    console.log(`[PDF] Generating PDF: pageSize=${pageSize || 'A4'}, html length=${pagesHtml.length}`);
 
     const pdfBuffer = await generatePdf({
-      templateElements,
-      dataArray: dataArray || [],
-      itemsPerPage: itemsPerPage || 1,
+      pagesHtml,
+      pageSize: pageSize || 'A4',
     });
 
     res.set({

@@ -25,6 +25,8 @@ import minimalTemplate from './data/hanziMinimalTemplate.json';
 import flashcardTemplate from './data/hanziFlashcardTemplate.json';
 import strokeOrderTemplate from './data/hanziStrokeOrderTemplate.json';
 import compactDualTemplate from './data/hanziCompactDualTemplate.json';
+import classroomTemplate from './data/hanziClassroomTemplate.json';
+import calligraphyTemplate from './data/hanziCalligraphyTemplate.json';
 
 // ─── State ───
 const state: EditorState = {
@@ -42,7 +44,6 @@ const page = document.getElementById('a4-page')!;
 const panelContent = document.getElementById('panel-content')!;
 const canvasArea = document.getElementById('canvas-area')!;
 const statusElements = document.getElementById('status-elements')!;
-const printContainer = document.getElementById('print-container')!;
 const previewModal = document.getElementById('preview-modal')!;
 const previewPages = document.getElementById('preview-pages')!;
 const previewCount = document.getElementById('preview-count')!;
@@ -53,6 +54,7 @@ const layoutNameInput = document.getElementById('tool-layout-name') as HTMLInput
 const charInputModal = document.getElementById('char-input-modal')!;
 const charInputTextarea = document.getElementById('char-input-textarea') as HTMLTextAreaElement;
 const charInputStatus = document.getElementById('char-input-status')!;
+const pageSizeSelect = document.getElementById('tool-page-size') as HTMLSelectElement;
 
 // Track current layout ID (for save/update)
 let currentLayoutId: number | null = null;
@@ -64,6 +66,8 @@ const templatePresets: Record<string, { template: { elements?: AnyElementProps[]
   flashcard: { template: flashcardTemplate as { elements?: AnyElementProps[] }, itemsPerPage: 2 },
   strokeOrder: { template: strokeOrderTemplate as { elements?: AnyElementProps[] }, itemsPerPage: 1 },
   compactDual: { template: compactDualTemplate as { elements?: AnyElementProps[] }, itemsPerPage: 2 },
+  classroom: { template: classroomTemplate as { elements?: AnyElementProps[] }, itemsPerPage: 4 },
+  calligraphy: { template: calligraphyTemplate as { elements?: AnyElementProps[] }, itemsPerPage: 1 },
 };
 
 // ═══════════════════════════════════════════
@@ -423,6 +427,10 @@ function getItemsPerPage(): number {
   return parseInt(itemsPerPageSelect.value, 10) || 1;
 }
 
+function getPageSize(): 'A4' | 'A5' {
+  return (pageSizeSelect?.value as 'A4' | 'A5') || 'A4';
+}
+
 function loadPresetTemplate(key: string): void {
   const preset = templatePresets[key] || templatePresets.elegant;
   loadTemplate(preset.template);
@@ -508,8 +516,92 @@ function buildGeneratedPageDOM(target: HTMLElement, preview = false): number {
   }
   const data = (state.dataArray || []) as Record<string, unknown>[];
   const pages = generatePages(templateElements, data, getItemsPerPage());
+  const pageSize = getPageSize();
 
   target.innerHTML = '';
+
+  if (pageSize === 'A5') {
+    // A5 Booklet mode: pair pages onto A4 landscape sheets
+    // Original content is designed for A4 (210×297mm)
+    // Each A5 half is 148.5×210mm on the A4 landscape sheet
+    // Scale factor: A5 width / A4 width = 148.5/210 ≈ 0.707
+    // But we also rotate: A5 page height maps to A4 height (210mm)
+    // So content designed for 297mm tall needs to fit in 210mm → scale = 210/297 ≈ 0.707
+    // Content designed for 210mm wide needs to fit in 148.5mm → scale = 148.5/210 ≈ 0.707
+    // Both ratios are the same (√2/2), so uniform scale of ~0.707
+    const scale = 148.5 / 210; // ≈ 0.7071
+
+    const totalSheets = Math.ceil(pages.length / 2);
+    for (let s = 0; s < totalSheets; s++) {
+      const leftPageIdx = s * 2;
+      const rightPageIdx = s * 2 + 1;
+
+      const sheetDiv = document.createElement('div');
+      sheetDiv.className = preview ? 'preview-page a5-booklet-sheet' : 'print-page a5-booklet-sheet';
+
+      // Left half (first A5 page)
+      if (leftPageIdx < pages.length) {
+        const leftHalf = document.createElement('div');
+        leftHalf.className = 'a5-booklet-half a5-booklet-left';
+        const leftContent = document.createElement('div');
+        leftContent.className = 'a5-booklet-content';
+        leftContent.style.transform = `scale(${scale})`;
+        leftContent.style.transformOrigin = 'top left';
+        leftContent.style.width = '210mm';
+        leftContent.style.height = '297mm';
+        leftContent.style.position = 'relative';
+        pages[leftPageIdx].elements.forEach(props => {
+          const el = createElementDOM(props);
+          el.classList.remove('selected');
+          el.style.left = props.x + 'mm';
+          el.style.top = props.y + 'mm';
+          if (!isAutoHeightType(props.type, props)) {
+            el.style.width = props.width + 'mm';
+            el.style.height = props.height + 'mm';
+          }
+          leftContent.appendChild(el);
+        });
+        leftHalf.appendChild(leftContent);
+        sheetDiv.appendChild(leftHalf);
+      }
+
+      // Right half (second A5 page)
+      if (rightPageIdx < pages.length) {
+        const rightHalf = document.createElement('div');
+        rightHalf.className = 'a5-booklet-half a5-booklet-right';
+        const rightContent = document.createElement('div');
+        rightContent.className = 'a5-booklet-content';
+        rightContent.style.transform = `scale(${scale})`;
+        rightContent.style.transformOrigin = 'top left';
+        rightContent.style.width = '210mm';
+        rightContent.style.height = '297mm';
+        rightContent.style.position = 'relative';
+        pages[rightPageIdx].elements.forEach(props => {
+          const el = createElementDOM(props);
+          el.classList.remove('selected');
+          el.style.left = props.x + 'mm';
+          el.style.top = props.y + 'mm';
+          if (!isAutoHeightType(props.type, props)) {
+            el.style.width = props.width + 'mm';
+            el.style.height = props.height + 'mm';
+          }
+          rightContent.appendChild(el);
+        });
+        rightHalf.appendChild(rightContent);
+        sheetDiv.appendChild(rightHalf);
+      } else {
+        // Odd number of pages — add empty right half
+        const emptyHalf = document.createElement('div');
+        emptyHalf.className = 'a5-booklet-half a5-booklet-right a5-booklet-empty';
+        sheetDiv.appendChild(emptyHalf);
+      }
+
+      target.appendChild(sheetDiv);
+    }
+    return totalSheets;
+  }
+
+  // Normal A4 mode
   pages.forEach((pg) => {
     const pageDiv = document.createElement('div');
     pageDiv.className = preview ? 'preview-page' : 'print-page';
@@ -532,9 +624,9 @@ function buildGeneratedPageDOM(target: HTMLElement, preview = false): number {
 
 // ─── Character Input Modal ───
 
-let pendingAction: 'preview' | 'print' | 'pdf' = 'preview';
+let pendingAction: 'preview' | 'pdf' = 'preview';
 
-function openCharInputModal(action: 'preview' | 'print' | 'pdf'): void {
+function openCharInputModal(action: 'preview' | 'pdf'): void {
   pendingAction = action;
   charInputModal.classList.add('open');
   charInputModal.setAttribute('aria-hidden', 'false');
@@ -578,9 +670,6 @@ function confirmCharInput(): void {
       case 'preview':
         doOpenPreview();
         break;
-      case 'print':
-        doGenerateAndPrint();
-        break;
       case 'pdf':
         doDownloadPdf();
         break;
@@ -588,22 +677,20 @@ function confirmCharInput(): void {
   }, 50);
 }
 
-function doGenerateAndPrint(): void {
-  const pageCount = buildGeneratedPageDOM(printContainer, false);
-  if (!pageCount) return;
-  setTimeout(() => window.print(), 300);
-}
-
 function doOpenPreview(): void {
+  const pageSize = getPageSize();
   const pageCount = buildGeneratedPageDOM(previewPages, true);
   if (!pageCount) return;
-  previewCount.textContent = `${pageCount} page${pageCount === 1 ? '' : 's'}`;
+  const pageSizeInfo = document.getElementById('preview-page-size-info');
+  if (pageSize === 'A5') {
+    previewCount.textContent = `${pageCount} sheet${pageCount === 1 ? '' : 's'} (${pageCount * 2} A5 pages)`;
+    if (pageSizeInfo) pageSizeInfo.textContent = '📐 A5 Booklet → A4 Landscape';
+  } else {
+    previewCount.textContent = `${pageCount} page${pageCount === 1 ? '' : 's'}`;
+    if (pageSizeInfo) pageSizeInfo.textContent = '';
+  }
   previewModal.classList.add('open');
   previewModal.setAttribute('aria-hidden', 'false');
-}
-
-function generateAndPrint(): void {
-  openCharInputModal('print');
 }
 
 function openPreview(): void {
@@ -794,10 +881,12 @@ function setupToolbar(): void {
     (e.target as HTMLInputElement).value = '';
   });
 
-  $btn('tool-generate').addEventListener('click', generateAndPrint);
   $btn('tool-preview').addEventListener('click', openPreview);
   $btn('preview-close').addEventListener('click', closePreview);
-  $btn('preview-print').addEventListener('click', generateAndPrint);
+  $btn('preview-print').addEventListener('click', () => {
+    closePreview();
+    doDownloadPdf();
+  });
   itemsPerPageSelect.addEventListener('change', () => {
     if (getItemsPerPage() > 1) {
       designDataToggle.checked = true;
@@ -841,6 +930,28 @@ function setupSidebar(): void {
     });
     input.click();
   });
+
+  // Double-click on Template Variable items to copy the variable tag
+  const variableList = document.getElementById('variable-list');
+  if (variableList) {
+    variableList.addEventListener('dblclick', (e) => {
+      const item = (e.target as HTMLElement).closest('.variable-item') as HTMLElement | null;
+      if (!item) return;
+      const variableValue = item.getAttribute('data-variable');
+      if (!variableValue) return;
+      navigator.clipboard.writeText(variableValue).then(() => {
+        // Show visual feedback
+        item.classList.add('variable-copied');
+        const originalDesc = item.querySelector('.variable-desc');
+        const originalText = originalDesc?.textContent || '';
+        if (originalDesc) originalDesc.textContent = '✓ Đã copy!';
+        setTimeout(() => {
+          item.classList.remove('variable-copied');
+          if (originalDesc) originalDesc.textContent = originalText;
+        }, 1200);
+      });
+    });
+  }
 }
 
 // ═══════════════════════════════════════════
@@ -953,15 +1064,21 @@ async function doDownloadPdf(): Promise<void> {
     return;
   }
 
-  const data = (state.dataArray || []) as Record<string, unknown>[];
   const name = layoutNameInput.value.trim() || 'hanzi-layout';
+  const pageSize = getPageSize();
 
   try {
     const btn = document.getElementById('tool-download-pdf')!;
     btn.textContent = '⏳ Đang tạo...';
     (btn as HTMLButtonElement).disabled = true;
 
-    await downloadPdf(templateElements, data, getItemsPerPage(), `${name}.pdf`);
+    // Build the pages HTML on the client side (same as preview rendering)
+    // This ensures all SVG characters, stroke progressions, grids etc. are rendered correctly
+    const tempContainer = document.createElement('div');
+    buildGeneratedPageDOM(tempContainer, false);
+    const pagesHtml = tempContainer.innerHTML;
+
+    await downloadPdf(pagesHtml, pageSize, `${name}.pdf`);
 
     btn.textContent = '📥 PDF';
     (btn as HTMLButtonElement).disabled = false;

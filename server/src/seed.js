@@ -14,27 +14,51 @@ const webDataDir = resolve(__dirname, '../../web/src/data');
 const sampleLayouts = [
   {
     name: 'Elegant Workbook',
-    description: 'Bố cục trang nhã với khối chữ, pinyin, và bảng luyện viết. 1 từ/trang.',
+    description: 'Bố cục trang nhã 1 chữ/trang: SVG chữ lớn, stroke progression, thông tin chi tiết và lưới luyện viết.',
     file: 'hanziWorkbookTemplate.json',
     itemsPerPage: 1,
   },
   {
     name: '3 Words Practice',
-    description: 'Bố cục 3 từ mỗi trang, tối ưu không gian luyện viết.',
+    description: '3 chữ mỗi trang, mỗi slot gồm SVG chữ, thông tin ngắn gọn và lưới luyện viết.',
     file: 'hanziTriplePracticeTemplate.json',
     itemsPerPage: 3,
   },
   {
     name: 'Minimal',
-    description: 'Bố cục tối giản, tập trung vào ô luyện viết.',
+    description: 'Bố cục tối giản 1 chữ/trang: chữ SVG lớn, thông tin cơ bản và nhiều ô luyện viết.',
     file: 'hanziMinimalTemplate.json',
     itemsPerPage: 1,
   },
   {
     name: 'Flashcard',
-    description: 'Thẻ flashcard 2 mỗi trang, kết hợp nhận diện và luyện viết.',
+    description: 'Thẻ flashcard 2 chữ/trang: SVG chữ lớn, nghĩa và lưới luyện viết nhỏ gọn.',
     file: 'hanziFlashcardTemplate.json',
     itemsPerPage: 2,
+  },
+  {
+    name: 'Stroke Order Focus',
+    description: 'Tập trung thứ tự nét viết: SVG chữ lớn, stroke progression chi tiết và lưới 米字格.',
+    file: 'hanziStrokeOrderTemplate.json',
+    itemsPerPage: 1,
+  },
+  {
+    name: 'Compact Dual',
+    description: '2 chữ mỗi trang: SVG chữ, stroke progression và lưới 田字格 gọn gàng.',
+    file: 'hanziCompactDualTemplate.json',
+    itemsPerPage: 2,
+  },
+  {
+    name: 'Classroom Standard',
+    description: '4 chữ/trang kiểu worksheet trường học: pinyin + chữ mẫu + stroke progression + hàng ô 田字格.',
+    file: 'hanziClassroomTemplate.json',
+    itemsPerPage: 4,
+  },
+  {
+    name: 'Calligraphy Sheet',
+    description: '1 chữ/trang kiểu luyện thư pháp: chữ SVG lớn, stroke progression chi tiết, lưới 米字格 ô lớn.',
+    file: 'hanziCalligraphyTemplate.json',
+    itemsPerPage: 1,
   },
 ];
 
@@ -58,17 +82,11 @@ async function seed() {
     sampleData = null;
   }
 
-  for (const layout of sampleLayouts) {
-    // Check if already exists
-    const existing = await pool.query(
-      'SELECT id FROM layouts WHERE name = $1 AND is_sample = TRUE',
-      [layout.name]
-    );
+  // Delete old sample layouts to re-seed with updated templates
+  const deleteResult = await pool.query('DELETE FROM layouts WHERE is_sample = TRUE');
+  console.log(`  🗑 Deleted ${deleteResult.rowCount} old sample layouts`);
 
-    if (existing.rows.length > 0) {
-      console.log(`  ⏩ Sample layout "${layout.name}" already exists, skipping`);
-      continue;
-    }
+  for (const layout of sampleLayouts) {
 
     try {
       const templateData = JSON.parse(readFileSync(resolve(webDataDir, layout.file), 'utf-8'));

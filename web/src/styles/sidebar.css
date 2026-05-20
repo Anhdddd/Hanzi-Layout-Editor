@@ -140,6 +140,16 @@
   border-color: var(--color-primary);
 }
 
+.variable-item.variable-copied {
+  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.variable-item {
+  cursor: pointer;
+  user-select: none;
+}
+
 .variable-item-header {
   display: flex;
   align-items: center;

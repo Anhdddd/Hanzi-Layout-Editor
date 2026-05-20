@@ -1,112 +1,117 @@
-/* Print Styles */
-@media print {
-  @page {
-    size: A4;
-    margin: 0;
-  }
+/* Preview Modal Styles */
 
-  html, body {
-    background: #fff !important;
-    width: 210mm;
-    margin: 0;
-    padding: 0;
-  }
-
-  #app { display: none !important; }
-
-  .print-container {
-    display: block !important;
-  }
-
-  .print-page {
-    width: 210mm;
-    min-height: 297mm;
-    padding: 10mm;
-    background: #fff;
-    page-break-after: always;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .print-page:last-child {
-    page-break-after: auto;
-  }
-
-  .print-page .page-element {
-    position: absolute;
-  }
+.preview-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: none;
+  flex-direction: column;
+  background: rgba(10, 12, 18, 0.94);
+  backdrop-filter: blur(10px);
 }
 
-@media screen {
-  .print-container {
-    display: none;
-  }
+.preview-modal.open {
+  display: flex;
+}
 
-  .preview-modal {
-    position: fixed;
-    inset: 0;
-    z-index: 9999;
-    display: none;
-    flex-direction: column;
-    background: rgba(10, 12, 18, 0.94);
-    backdrop-filter: blur(10px);
-  }
+.preview-header {
+  height: 56px;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 18px;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text);
+  background: var(--color-bg-elevated);
+}
 
-  .preview-modal.open {
-    display: flex;
-  }
+.preview-header strong {
+  display: block;
+  font-size: 14px;
+}
 
-  .preview-header {
-    height: 56px;
-    flex: 0 0 auto;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 18px;
-    border-bottom: 1px solid var(--color-border);
-    color: var(--color-text);
-    background: var(--color-bg-elevated);
-  }
+#preview-count {
+  display: block;
+  margin-top: 2px;
+  color: var(--color-text-secondary);
+  font-size: 11px;
+}
 
-  .preview-header strong {
-    display: block;
-    font-size: 14px;
-  }
+.preview-size-badge {
+  display: inline-block;
+  margin-left: 8px;
+  font-size: 10px;
+  color: #10b981;
+  font-weight: 500;
+}
 
-  #preview-count {
-    display: block;
-    margin-top: 2px;
-    color: var(--color-text-secondary);
-    font-size: 11px;
-  }
+.preview-actions {
+  display: flex;
+  gap: 8px;
+}
 
-  .preview-actions {
-    display: flex;
-    gap: 8px;
-  }
+.preview-pages {
+  flex: 1 1 auto;
+  overflow: auto;
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+}
 
-  .preview-pages {
-    flex: 1 1 auto;
-    overflow: auto;
-    padding: 28px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 28px;
-  }
+.preview-page {
+  width: 210mm;
+  min-height: 297mm;
+  padding: 10mm;
+  background: #fff;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 20px 80px rgba(0, 0, 0, 0.45);
+  transform-origin: top center;
+}
 
-  .preview-page {
-    width: 210mm;
-    min-height: 297mm;
-    padding: 10mm;
-    background: #fff;
-    position: relative;
-    overflow: hidden;
-    box-shadow: 0 20px 80px rgba(0, 0, 0, 0.45);
-    transform-origin: top center;
-  }
+.preview-page .page-element {
+  position: absolute;
+}
 
-  .preview-page .page-element {
-    position: absolute;
-  }
+/* A5 Booklet Preview */
+.preview-page.a5-booklet-sheet {
+  width: 297mm;
+  min-height: 210mm;
+  padding: 0;
+  display: flex;
+  flex-direction: row;
+}
+
+.a5-booklet-half {
+  width: 148.5mm;
+  height: 210mm;
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+  border: 1px dashed #ccc;
+}
+
+.a5-booklet-half .page-element {
+  position: absolute;
+}
+
+.a5-booklet-content {
+  position: relative;
+}
+
+.a5-booklet-left {
+  border-right: 1px dashed #aaa;
+}
+
+.a5-booklet-empty {
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 10px,
+    rgba(0,0,0,0.02) 10px,
+    rgba(0,0,0,0.02) 20px
+  );
 }

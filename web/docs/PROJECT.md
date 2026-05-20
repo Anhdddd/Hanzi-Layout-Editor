@@ -1,6 +1,6 @@
 # Hanzi Layout Editor — Project Documentation
 
-> Tài liệu kỹ thuật dành cho AI Agent và developer. Cập nhật lần cuối: 2026-05-16.
+> Tài liệu kỹ thuật dành cho AI Agent và developer. Cập nhật lần cuối: 2026-05-20.
 
 ---
 
@@ -8,11 +8,13 @@
 
 **Hanzi Layout Editor** là một web-based visual editor để thiết kế bố cục vở/sách luyện viết chữ Hán tự. Người dùng có thể:
 
-- Kéo thả các element (text, bảng luyện viết, khối chữ Hán tự, hình khối…) lên trang A4
-- Tùy chỉnh properties (font, màu, kích thước, border…) qua panel bên phải
-- Gắn biến template `{{variable}}` vào các field → batch generate nhiều trang từ dữ liệu JSON
-- Export template (JSON) và in PDF qua `window.print()`
-- Chạy hoàn toàn local, không cần server
+- Kéo thả các element (text, SVG chữ Hán, bảng luyện viết 田字格/米字格, stroke progression, khối chữ Hán tự, hình khối…) lên trang A4
+- Tùy chỉnh properties (font, màu, kích thước, border, opacity…) qua panel bên phải
+- Gắn biến template `{{variable}}` vào các field → batch generate nhiều trang từ dữ liệu character database
+- Nhập danh sách chữ cần in (gõ tay hoặc load file .txt) → hệ thống tự tra cứu database 3000+ chữ
+- Hiển thị chữ Hán dạng SVG (stroke data), stroke progression (thứ tự nét), guide character (nét đứt để tô)
+- Export template (JSON), lưu lên server, preview và tải PDF
+- Hệ thống auth (login/register) + cloud save layouts
 
 **Mục đích kinh doanh:** Tạo ra nhiều bộ sách/vở luyện viết Hán tự khác nhau một cách nhanh chóng, sau đó in hàng loạt để bán.
 
@@ -27,9 +29,12 @@
 | UI Framework | Vanilla HTML/CSS/TS (không dùng React/Vue) |
 | Kéo thả / Resize | **Moveable.js** v0.53+ |
 | Multi-select | **Selecto.js** v1.26+ (đã cài, chưa tích hợp) |
-| Fonts | Google Fonts: Inter, Noto Sans SC, Noto Serif SC |
+| Fonts | LXGW WenKai (mặc định), Inter, Noto Sans SC, Noto Serif SC |
 | In ấn | CSS `@page` + `window.print()` |
-| Lưu trữ | Export/Import JSON file (không có database) |
+| PDF | Server-side generation via `/api/pdf/generate` |
+| Lưu trữ | PostgreSQL (server) + Export/Import JSON file |
+| Auth | JWT token-based (bcrypt password hash) |
+| Server | Express.js + PostgreSQL |
 
 ---
 
@@ -37,62 +42,109 @@
 
 ```
 toolsLayout/
-├── index.html                      ← Entry point HTML, cấu trúc DOM chính
-├── package.json                    ← Dependencies & scripts
-├── tsconfig.json                   ← TypeScript configuration
+├── server/                         ← Backend Express.js
+│   ├── src/
+│   │   ├── index.js                ← Server entry point
+│   │   ├── config/
+│   │   │   ├── database.js         ← PostgreSQL pool
+│   │   │   └── init.js             ← DB table creation + seed admin
+│   │   ├── middleware/
+│   │   │   └── auth.js             ← JWT auth middleware
+│   │   ├── routes/
+│   │   │   ├── auth.js             ← Login/Register endpoints
+│   │   │   ├── layouts.js          ← CRUD layouts API
+│   │   │   └── pdf.js              ← PDF generation endpoint
+│   │   ├── services/
+│   │   │   └── pdfService.js       ← PDF rendering logic
+│   │   ├── seed.js                 ← Seed sample layouts into DB
+│   │   └── data/
+│   │       ├── characters.json     ← 3000+ chữ Hán (stroke SVG data)
+│   │       └── chiettu.json        ← Chiết tự + nghĩa Việt ngắn gọn
+│   └── package.json
 │
-├── src/
-│   ├── main.ts                     ← ★ Entry point JS — orchestrator chính
-│   ├── types.ts                    ← ★ Định nghĩa types cho toàn bộ project
-│   │
-│   ├── editor/
-│   │   ├── ElementManager.ts       ← Quản lý CRUD & DOM rendering element
-│   │   ├── PropertyPanel.ts        ← Render property form cho element đang chọn
-│   │   └── UndoRedo.ts             ← Stack-based undo/redo
-│   │
-│   ├── template/
-│   │   └── TemplateEngine.ts       ← Variable binding & batch page generation
-│   │
-│   ├── data/
-│   │   └── sampleData.json         ← 10 từ Hán tự HSK1 mẫu
-│   │
-│   ├── styles/
-│   │   ├── index.css               ← Design system (CSS variables, reset)
-│   │   ├── editor.css              ← Layout editor (flex, resize handles)
-│   │   ├── page.css                ← A4 page, grid cells, character block
-│   │   ├── toolbar.css             ← Top toolbar
-│   │   ├── sidebar.css             ← Left sidebar + variable list
-│   │   ├── properties.css          ← Right properties panel
-│   │   └── print.css               ← @page rules cho in PDF
-│   │
-│   └── assets/                     ← (trống, dành cho assets tương lai)
+├── web/                            ← Frontend Vite + TypeScript
+│   ├── index.html                  ← Editor page
+│   ├── dashboard.html              ← Layout management page
+│   ├── login.html                  ← Auth page
+│   ├── public/
+│   │   ├── characters.json         ← Copy of stroke data (served static, ~24MB)
+│   │   ├── chiettu.json            ← Copy of chiết tự data (served static)
+│   │   ├── favicon.svg
+│   │   └── icons.svg
+│   ├── src/
+│   │   ├── main.ts                 ← ★ Editor entry point — orchestrator chính
+│   │   ├── dashboard.ts            ← Dashboard page logic
+│   │   ├── login.ts                ← Login page logic
+│   │   ├── types.ts                ← ★ Định nghĩa types cho toàn bộ project
+│   │   ├── auth/
+│   │   │   └── auth.ts             ← Auth utilities (token, fetch wrapper)
+│   │   ├── data/
+│   │   │   ├── characterService.ts ← ★ Load & query character/chiettu data
+│   │   │   ├── sampleData.json     ← 10 từ HSK1 mẫu (legacy)
+│   │   │   ├── hanziWorkbookTemplate.json
+│   │   │   ├── hanziTriplePracticeTemplate.json
+│   │   │   ├── hanziMinimalTemplate.json
+│   │   │   ├── hanziFlashcardTemplate.json
+│   │   │   ├── hanziStrokeOrderTemplate.json
+│   │   │   └── hanziCompactDualTemplate.json
+│   │   ├── editor/
+│   │   │   ├── ElementManager.ts   ← ★ CRUD & DOM rendering tất cả elements
+│   │   │   ├── PropertyPanel.ts    ← Render property form cho element đang chọn
+│   │   │   └── UndoRedo.ts         ← Stack-based undo/redo
+│   │   ├── template/
+│   │   │   └── TemplateEngine.ts   ← Variable binding & batch page generation
+│   │   ├── pdf/
+│   │   │   └── pdfExport.ts        ← Client-side PDF download logic
+│   │   └── styles/
+│   │       ├── index.css            ← Design system + @font-face LXGW WenKai
+│   │       ├── editor.css           ← Layout + char input modal
+│   │       ├── page.css             ← A4 page, elements, grids, SVG styles
+│   │       ├── toolbar.css
+│   │       ├── sidebar.css
+│   │       ├── properties.css
+│   │       ├── print.css
+│   │       ├── dashboard.css
+│   │       └── login.css
+│   ├── tsconfig.json
+│   └── vite.config.ts
 │
-└── docs/
-    └── PROJECT.md                  ← File này
+├── docker-compose.yml
+├── deploy.sh
+└── .gitignore
 ```
 
 ---
 
 ## 4. Kiến trúc & Data Flow
 
-### 4.1. Cấu trúc DOM chính
+### 4.1. Character Data Pipeline
 
 ```
-#app
-├── #toolbar                        ← Header: format tools, save/load, generate
-├── .editor-main                    ← Flex row chứa 3 panels
-│   ├── #sidebar                    ← Panel trái: add elements, data source, variables
-│   ├── .resize-handle-left         ← Drag handle resize sidebar
-│   ├── #canvas-area                ← Vùng giữa: scroll + A4 page
-│   │   └── .canvas-scroll
-│   │       └── .a4-page-wrapper
-│   │           └── #a4-page        ← ★ Container cho tất cả page-elements
-│   ├── .resize-handle-right        ← Drag handle resize properties
-│   └── #properties-panel           ← Panel phải: thuộc tính element đang chọn
-└── #print-container                ← Hidden container, dùng khi Generate/Print
+┌─────────────────────────────────────────────────────────────────┐
+│  /public/characters.json (24MB)     /public/chiettu.json        │
+│  ┌─────────────────────────┐        ┌──────────────────────┐   │
+│  │ 3034 characters         │        │ 3086 entries         │   │
+│  │ • strokes[] (SVG paths) │        │ • vietnamese_meaning │   │
+│  │ • medians[][]           │        │ • breakdown[]        │   │
+│  │ • pinyin                │        │ • compounds[]        │   │
+│  │ • vietnamese (full)     │        └──────────────────────┘   │
+│  │ • strokeCount           │                                    │
+│  │ • radical, def          │                                    │
+│  └─────────────────────────┘                                    │
+└───────────────────────────┬─────────────────────────────────────┘
+                            │ fetch() on init
+                            ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  characterService.ts                                            │
+│  • loadCharacters() → merge both files into CharacterMap        │
+│  • getCharacter(char) → CharacterData | null                    │
+│  • generateCharacterSVG(data, size, color)                      │
+│  • generateStrokeProgressionSVGs(data, size)                    │
+│  • generateGuideSVG(data, size, opacity)                        │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-### 4.2. Data Flow
+### 4.2. Editor Data Flow
 
 ```
 ┌──────────────────────────────────────────────────────┐
@@ -116,12 +168,37 @@ toolsLayout/
     └───────────────┘          └─────────────┘
 ```
 
-**Luồng chính:**
-1. User click "Add Element" → `addElement(type)` → tạo props via `getDefaultProps()` → lưu vào `state.elements` → render DOM via `createElementDOM()` → append vào `#a4-page`
-2. User click element → `selectElement(id)` → `Moveable.target = dom` → `renderPropertyPanel()` hiển thị form
-3. User thay đổi property → callback `onChange(prop, value)` → update props → `updateElementDOM()` re-render → `Moveable.updateTarget()`
-4. User drag/resize → Moveable events → update `props.x/y/width/height` (px→mm) → sync property panel
-5. Mỗi thao tác → `saveUndoState()` → push snapshot vào history
+### 4.3. Preview/Print Flow
+
+```
+User clicks Preview/PDF/Print
+        │
+        ▼
+┌─────────────────────────┐
+│  Character Input Modal   │
+│  • Nhập tay chữ Hán     │
+│  • Hoặc load file .txt  │
+└───────────┬─────────────┘
+            │ confirmCharInput()
+            ▼
+┌─────────────────────────┐
+│  buildDataFromCharacters │  ← Tra cứu từng chữ trong characterService
+│  → HanziDataItem[]       │     (pinyin, meaning, radical, stroke_count,
+│                           │      vietnamese_meaning)
+└───────────┬─────────────┘
+            │
+            ▼
+┌─────────────────────────┐
+│  generatePages()         │  ← TemplateEngine resolve {{variables}}
+│  → GeneratedPage[]       │     cho từng data item
+└───────────┬─────────────┘
+            │
+            ▼
+┌─────────────────────────┐
+│  createElementDOM()      │  ← Render SVG characters, stroke progression,
+│  → Print/Preview pages   │     guide characters (dashed), grids, etc.
+└─────────────────────────┘
+```
 
 ---
 
@@ -134,173 +211,234 @@ Tất cả element types được định nghĩa trong `src/types.ts`.
 | Prop | Type | Đơn vị | Mô tả |
 |---|---|---|---|
 | `id` | string | — | ID duy nhất, format `el_{timestamp}_{counter}` |
-| `type` | ElementType | — | `'text' \| 'practiceGrid' \| 'characterBlock' \| 'table' \| 'shape'` |
+| `type` | ElementType | — | Loại element |
 | `x`, `y` | number | mm | Vị trí tuyệt đối trong A4 page |
 | `width`, `height` | number | mm | Kích thước |
 | `rotation` | number | deg | Góc xoay |
 | `zIndex` | number | — | Thứ tự z-layer |
-| `locked` | boolean | — | Khóa element (chưa implement UI) |
+| `locked` | boolean | — | Khóa element |
 
-### 5.2. Element Types Chi Tiết
+### 5.2. Element Types
 
-#### `text` — Text Element
-- **Chức năng:** Khung text tự do, double-click để edit inline
-- **Props đặc trưng:** `content`, `fontSize` (pt), `fontFamily`, `fontWeight`, `fontStyle`, `textDecoration`, `color`, `backgroundColor`, `textAlign`, `lineHeight`
-- **Render:** `el.innerText = content`, apply inline styles
+| Type | Mô tả | Auto-height |
+|---|---|---|
+| `text` | Khung text tự do, double-click edit inline | No |
+| `hanziText` | Nhập chữ Hán → render SVG từng ký tự | No |
+| `strokeProgression` | Hiển thị từng bước viết nét (SVG) | No |
+| `practiceGrid` | Bảng ô luyện viết 田字格 (cross lines) | Yes |
+| `miGrid` | Bảng ô luyện viết 米字格 (cross + diagonal) | Yes |
+| `characterBlock` | Khối tổng hợp: SVG chữ + stroke progression + info + grid | Yes |
+| `table` | Bảng NxM generic | Optional |
+| `shape` | Hình khối: rectangle, circle, ellipse, line, roundedRect | No |
+| `image` | Hình ảnh (data URL) | No |
+| `callout` | Hộp ghi chú có icon + accent color | No |
+| `divider` | Đường phân cách có label + ornament | No |
+| `checklist` | Danh sách checkbox | No |
 
-#### `practiceGrid` — Bảng ô luyện viết (田字格)
-- **Chức năng:** Grid NxM ô vuông với đường chéo dashed (cross lines)
-- **Props đặc trưng:** `rows`, `cols`, `cellSize` (mm), `showCrossLines`, `guideCharacter`, `guideOpacity`, `guideFillRows`
-- **Render:** `<table class="practice-grid">` với `<td class="grid-cell">`, cross-lines là pseudo `<div>` positioned absolute
-- **Auto-height:** Width/height tự tính từ `cols * cellSize` / `rows * cellSize`
+### 5.3. Chi tiết Element mới
 
-#### `characterBlock` — Khối Hán tự tổng hợp
-- **Chức năng:** Element phức hợp gồm: chữ chính + stroke progression + pinyin/HV/meaning + practice grid bên dưới
-- **Props đặc trưng:** `character`, `pinyin`, `hanViet`, `meaningVi`, `strokeProgression`, `showStrokeProgression`, `charFontSize`, `gridRows`, `gridCols`, `gridCellSize`, `gridShowCross`, `gridGuideOpacity`, `gridGuideFillRows`
-- **Render:** Tạo DOM hierarchy: `.character-block > .char-header + .char-info + table.practice-grid`
-- **Auto-height:** Yes
+#### `hanziText` — Chữ Hán dạng SVG
+- **Chức năng:** Nhập chuỗi chữ Hán → mỗi ký tự render thành SVG từ stroke data
+- **Props:** `content`, `charSize` (pt), `charGap` (mm), `color`, `lineHeight`
+- **Behavior:** Nếu content là template variable `{{character}}`, hiển thị placeholder text. Khi resolve → render SVG.
+- **Fallback:** Chữ không có trong DB → render text thường
 
-#### `table` — Bảng dữ liệu
-- **Chức năng:** Bảng NxM generic, hàng đầu là header
-- **Props đặc trưng:** `tableRows`, `tableCols`, `tableData[][]`, `headerBg`, `borderColor`, `cellPadding`, `fontSize`, `fontFamily`
-- **Auto-height:** Yes
+#### `strokeProgression` — Thứ tự nét viết
+- **Chức năng:** Hiển thị từng bước viết nét của 1 chữ, nét hiện tại bôi đỏ
+- **Props:** `character`, `stepSize` (pt), `stepGap` (mm), `completedColor`, `activeColor`, `showStepNumbers`, `numberFontSize`, `numberColor`, `showFullCharFirst`, `fullCharColor`
+- **Behavior:** Mỗi step = 1 SVG với tất cả nét đã viết (đen) + nét đang viết (đỏ)
 
-#### `shape` — Hình khối
-- **Chức năng:** Các hình cơ bản: rectangle, roundedRect, circle, ellipse, line
-- **Props đặc trưng:** `shapeType` (ShapeVariant), `borderColor`, `borderWidth`, `backgroundColor`, `borderStyle` (solid/dashed/dotted/double), `borderRadius`
-- **Render:** Apply `border-radius: 50%` cho circle/ellipse, custom `borderRadius` cho roundedRect, `height: 0` cho line
+#### `miGrid` — Lưới 米字格
+- **Chức năng:** Grid NxM ô vuông với đường chữ thập + 2 đường chéo (8 phần)
+- **Props:** Giống `practiceGrid` + `showDiagonalLines`
+- **Guide character:** Render SVG dạng nét đứt (dashed outline, fill trắng) từ stroke data
+
+#### `characterBlock` — Khối Hán tự tổng hợp (cập nhật)
+- **Grid type:** Chọn `tian` (田字格) hoặc `mi` (米字格)
+- **Grid border:** Tùy chỉnh `gridBorderColor`, `gridBorderOpacity`
+- **Grid lines:** Tùy chỉnh `gridCrossColor`, `gridCrossOpacity`, `gridShowDiagonal`
+- **Row gap:** `gridRowGap` (mm) — khoảng cách giữa các hàng
+- **Main character:** Render SVG (không phải text)
+- **Stroke progression:** Render SVG với nét đỏ/đen
+- **Guide character:** SVG nét đứt (dashed) trong ô luyện viết
 
 ---
 
-## 6. Hệ thống Đơn vị (Units)
+## 6. Character Data Format
 
-**Quan trọng:** Dự án sử dụng **mm (millimeters)** làm đơn vị chính cho element positioning/sizing để đảm bảo khi in ra giấy A4 thì chính xác.
-
-- **State (props):** Luôn lưu bằng mm
-- **DOM rendering (screen):** Chuyển mm → px bằng `mmToPx()` (1mm ≈ 3.7795px at 96 DPI)
-- **Print rendering:** Dùng trực tiếp mm (`el.style.left = props.x + 'mm'`)
-- **Moveable events:** Trả về px → convert qua `pxToMm()` trước khi lưu
+### 6.1. characters.json (stroke data)
 
 ```typescript
-export const MM_TO_PX = 3.7795275591;
-export function mmToPx(mm: number): number { return mm * MM_TO_PX; }
-export function pxToMm(px: number): number { return px / MM_TO_PX; }
-```
-
----
-
-## 7. Template Engine & Variable System
-
-### 7.1. Cú pháp biến
-Sử dụng `{{variable_name}}` trong bất kỳ string property nào. Ví dụ:
-- `character` field → `{{character}}` → sẽ được thay bằng `你`, `好`, `我`...
-- `content` của text element → `Bài {{_index}}: {{character}} — {{meaning_vi}}`
-
-### 7.2. Biến đặc biệt
-| Biến | Mô tả |
-|---|---|
-| `{{_index}}` | Số thứ tự bắt đầu từ 1 |
-| `{{_index0}}` | Số thứ tự bắt đầu từ 0 |
-
-### 7.3. Batch Generation
-Khi nhấn "Generate":
-1. `generatePages(templateElements, dataArray, itemsPerPage)` được gọi
-2. Mỗi data item → 1 trang (khi `itemsPerPage = 0`)
-3. Mỗi trang: clone template elements → `resolveElementProps()` thay thế tất cả `{{var}}` bằng data thực
-4. Render vào `#print-container` → `window.print()`
-
-### 7.4. Variable Descriptors
-Khi load data, `getVariableDescriptors()` tạo ra mảng `VariableDescriptor[]` chứa:
-- `key`: tên biến
-- `description`: mô tả tiếng Việt (từ `KNOWN_DESCRIPTIONS` map)
-- `sampleValue`: giá trị mẫu từ item đầu tiên
-- `isArray`: có phải mảng không (sẽ được join bằng space)
-
----
-
-## 8. Dữ liệu Hán tự (Sample Data)
-
-File `src/data/sampleData.json` chứa 10 từ HSK1. Schema:
-
-```typescript
-interface HanziDataItem {
-  id: number;
-  character: string;           // "你"
-  pinyin: string;              // "nǐ"
-  han_viet: string;            // "NỄ"
-  meaning_vi: string;          // "bạn, anh, chị"
-  meaning_en: string;          // "you"
-  stroke_count: number;        // 7
-  stroke_order: string[];      // ["丿", "丨", ...]
-  stroke_progression: string[];// ["丿", "𠆢", "亻", ..., "你"]
-  radical: string;             // "亻"
-  hsk_level: number;           // 1
-  example_word: string;        // "你好"
-  example_pinyin: string;      // "nǐ hǎo"
-  example_meaning: string;     // "xin chào"
+interface CharacterData {
+  char: string;           // "你"
+  def: string;            // "you" (English definition)
+  decomp: string;         // "⿰亻尔" (decomposition)
+  radical: string;        // "亻"
+  etymology: string;      // JSON string with type + hint
+  strokes: string[];      // SVG path data (closed shapes, viewBox 0 0 1024 1024)
+  medians: number[][][];  // Median points per stroke
+  matches: number[][];    // Component matching data
+  strokeCount: number;    // 7
+  pinyin: string;         // "nǐ"
+  vietnamese: string;     // Full Vietnamese meaning (long)
+  vietnameseMeaning: string; // Short Vietnamese meaning from chiettu.json
 }
 ```
 
-Người dùng có thể import JSON file riêng với schema tùy ý — hệ thống tự detect tất cả keys.
+**Lưu ý SVG:**
+- Hệ tọa độ: Y-up (Y=0 ở dưới) → cần `transform="scale(1,-1) translate(0,-900)"` khi render
+- Paths là closed shapes (kết thúc bằng Z) → dùng `fill` để tô, không phải `stroke`
+- ViewBox: `0 0 1024 1024`
 
----
+### 6.2. chiettu.json (chiết tự)
 
-## 9. CSS Architecture
-
-### 9.1. Design Tokens (`index.css`)
-Tất cả colors, fonts, spacing, radius được khai báo qua CSS custom properties trong `:root`. Khi cần thay đổi theme, chỉ sửa file này.
-
-**Key variables:**
-- `--color-bg`, `--color-bg-elevated`, `--color-bg-surface` — background layers
-- `--color-primary` (`#6366f1`) — accent color (indigo)
-- `--color-border`, `--color-border-light` — borders
-- `--font-ui` — Inter (UI text)
-- `--font-chinese` — Noto Sans SC (Chinese text)
-- `--sidebar-width` (`240px`), `--panel-width` (`260px`) — panel sizes
-
-### 9.2. File phân chia
-| File | Trách nhiệm |
-|---|---|
-| `index.css` | Variables, reset, scrollbar, Moveable overrides |
-| `editor.css` | Flex layout 3 columns, resize handles |
-| `page.css` | A4 page, `.page-element`, `.practice-grid`, `.character-block`, `.generic-table`, `.shape-*` |
-| `toolbar.css` | Top toolbar buttons, selects, color pickers |
-| `sidebar.css` | Sidebar sections, add buttons, data preview, variable cards |
-| `properties.css` | Right panel form: `.prop-group`, `.prop-row`, `.prop-input`, `.prop-checkbox` |
-| `print.css` | `@media print` rules: ẩn editor, hiển thị `#print-container`, `@page { size: A4 }` |
-
----
-
-## 10. Moveable.js Integration
-
-### Cấu hình
 ```typescript
-new Moveable(page, {        // parentElement = page (render controls inside page)
-  container: page,           // coordinate reference = page
-  draggable: true,
-  resizable: true,
-  snappable: true,           // snap to edges/centers of other elements
-  snapThreshold: 5,          // px
-});
+interface ChietTuItem {
+  word: string;               // "爱"
+  pinyin: string;             // "ài"
+  vietnamese_meaning: string; // "yêu, tình yêu" (ngắn gọn)
+  breakdown: [{
+    character: string;
+    components: [{ radical: string; meaning: string }];
+    mnemonic: string;
+  }];
+  compounds: unknown[];
+}
 ```
 
-### Lưu ý quan trọng
-- Moveable **phải render controls bên trong `#a4-page`** (cùng coordinate space với elements). Nếu render ở `canvasArea` sẽ bị lệch handles.
-- Khi element thay đổi props → cần gọi `moveable.updateTarget()` để sync handles.
-- Một số element types (`practiceGrid`, `characterBlock`, `table`) có **auto-height** — không set `dom.style.height` bằng px mà để auto.
+---
+
+## 7. Template Variables
+
+Sử dụng `{{variable_name}}` trong bất kỳ string property nào.
+
+| Biến | Nguồn | Mô tả |
+|---|---|---|
+| `{{character}}` | characters.json | Chữ Hán tự |
+| `{{pinyin}}` | characters.json | Phiên âm pinyin |
+| `{{meaning_vi}}` | characters.json `.vietnamese` | Nghĩa tiếng Việt (đầy đủ, dài) |
+| `{{vietnamese_meaning}}` | chiettu.json | Nghĩa tiếng Việt (ngắn gọn) |
+| `{{meaning_en}}` | characters.json `.def` | Nghĩa tiếng Anh |
+| `{{radical}}` | characters.json | Bộ thủ |
+| `{{stroke_count}}` | characters.json | Số nét |
+| `{{_index}}` | auto | Số thứ tự (bắt đầu từ 1) |
+| `{{_index0}}` | auto | Số thứ tự (bắt đầu từ 0) |
+
+### Batch Generation Flow
+1. User nhập chữ (gõ tay hoặc load .txt) trong Character Input Modal
+2. `buildDataFromCharacters()` tra cứu từng chữ trong `characterService`
+3. `generatePages()` clone template elements → `resolveElementProps()` thay `{{var}}` bằng data thực
+4. `createElementDOM()` render SVG cho mỗi element đã resolve
 
 ---
 
-## 11. Undo/Redo
+## 8. SVG Rendering
 
-- Stack-based, tối đa 40 levels
-- Mỗi snapshot = deep clone toàn bộ `state.elements.values()`
-- Khi undo/redo: xóa tất cả DOM elements → re-render từ snapshot
-- Trigger: sau mỗi addElement, removeElement, property change, drag/resize end
+### 8.1. Character SVG (`generateCharacterSVG`)
+- Fill đặc, 1 màu (configurable)
+- Transform: `scale(1,-1) translate(0,-900)`
+
+### 8.2. Stroke Progression SVG (`generateStrokeProgressionSVGs`)
+- Mỗi step: nét đã viết = `completedColor`, nét đang viết = `activeColor`
+- Transform: `scale(1,-1) translate(0,-900)`
+
+### 8.3. Guide SVG (`generateGuideSVG`)
+- Fill trắng (`#ffffff`) + stroke đen dashed (`stroke-dasharray="20 12"`, `stroke-width="14"`)
+- Opacity giảm dần theo thứ tự nét (gợi ý thứ tự viết)
+- Transform: `scale(1,-1) translate(0,-900)`
+- Dùng trong grid cells để user tô theo bằng bút
 
 ---
 
-## 12. Keyboard Shortcuts
+## 9. Font System
+
+### Font mặc định: LXGW WenKai
+- File: `src/assets/LXGWWenKai-Medium.ttf` (~24MB)
+- Khai báo: `@font-face` trong `index.css`
+- CSS variable: `--font-chinese: 'LXGW WenKai', 'Noto Sans SC', ...`
+- Tất cả element mặc định dùng font này
+
+### Font options trong editor:
+- LXGW WenKai (mặc định)
+- Noto Sans SC
+- Noto Serif SC
+- Inter
+- Arial
+
+---
+
+## 10. CSS Architecture
+
+### Design Tokens (`index.css`)
+- `--color-bg`, `--color-bg-elevated`, `--color-bg-surface` — background layers
+- `--color-primary` (`#6366f1`) — accent color (indigo)
+- `--font-ui` — Inter (UI text)
+- `--font-chinese` — LXGW WenKai (Chinese text on page)
+- `--grid-border`, `--grid-cross` — grid line colors
+
+### File phân chia
+| File | Trách nhiệm |
+|---|---|
+| `index.css` | Variables, reset, @font-face, Moveable overrides |
+| `editor.css` | Flex layout, resize handles, char input modal |
+| `page.css` | A4 page, all element types, SVG styles, grid cells |
+| `toolbar.css` | Top toolbar |
+| `sidebar.css` | Left sidebar |
+| `properties.css` | Right properties panel |
+| `print.css` | @media print rules |
+| `dashboard.css` | Dashboard page |
+| `login.css` | Login page |
+
+---
+
+## 11. API Endpoints
+
+### Auth
+| Method | Path | Body | Response |
+|---|---|---|---|
+| POST | `/api/auth/register` | `{email, password, name}` | `{token, user}` |
+| POST | `/api/auth/login` | `{email, password}` | `{token, user}` |
+
+### Layouts (requires auth)
+| Method | Path | Body | Response |
+|---|---|---|---|
+| GET | `/api/layouts` | — | `{layouts[]}` (user's + samples) |
+| GET | `/api/layouts/samples` | — | `{layouts[]}` (samples only) |
+| GET | `/api/layouts/:id` | — | `{layout}` (full data) |
+| POST | `/api/layouts` | `{name, template_data, ...}` | `{layout}` |
+| PUT | `/api/layouts/:id` | `{name?, template_data?, ...}` | `{layout}` |
+| DELETE | `/api/layouts/:id` | — | `{message}` |
+
+### PDF
+| Method | Path | Body | Response |
+|---|---|---|---|
+| POST | `/api/pdf/generate` | `{templateElements, dataArray, itemsPerPage}` | PDF blob |
+
+---
+
+## 12. Template Presets
+
+| Key | Name | Items/Page | Mô tả |
+|---|---|---|---|
+| `elegant` | Elegant Workbook | 1 | Trang nhã, đầy đủ thông tin |
+| `triple` | 3 Words Practice | 3 | 3 từ/trang, tối ưu không gian |
+| `minimal` | Minimal | 1 | Tối giản, tập trung ô viết |
+| `flashcard` | Flashcard | 2 | Thẻ flashcard 2/trang |
+| `strokeOrder` | Stroke Order Focus | 1 | Tập trung thứ tự nét + 米字格 |
+| `compactDual` | Compact Dual | 2 | 2 chữ/trang gọn gàng |
+
+---
+
+## 13. Đơn vị (Units)
+
+- **State (props):** mm (millimeters)
+- **DOM rendering (screen):** mm → px (`1mm ≈ 3.7795px` at 96 DPI)
+- **Print rendering:** Dùng trực tiếp mm
+- **Moveable events:** px → convert qua `pxToMm()` trước khi lưu
+
+---
+
+## 14. Keyboard Shortcuts
 
 | Phím | Chức năng |
 |---|---|
@@ -311,20 +449,11 @@ new Moveable(page, {        // parentElement = page (render controls inside page
 | `Arrow keys` | Di chuyển element 1mm |
 | `Shift + Arrow keys` | Di chuyển element 5mm |
 | `Double-click` text | Bật chế độ edit inline |
+| `Double-click` table cell | Edit nội dung cell |
 
 ---
 
-## 13. Resizable Panels
-
-Sidebar (trái) và Properties Panel (phải) có thể kéo thả để thay đổi độ rộng:
-- Handle elements: `#resize-handle-left`, `#resize-handle-right`
-- Min width: sidebar 180px, properties 200px
-- Max width: 500px
-- Logic: `setupResizablePanels()` trong `main.ts`
-
----
-
-## 14. Quy ước code khi thêm tính năng mới
+## 15. Quy ước code khi thêm tính năng mới
 
 ### Thêm element type mới
 1. Thêm type vào `ElementType` union trong `types.ts`
@@ -334,47 +463,53 @@ Sidebar (trái) và Properties Panel (phải) có thể kéo thả để thay đ
 5. Tạo hàm `renderNewElement()` trong `ElementManager.ts`
 6. Thêm case trong `createElementDOM()` và `updateElementDOM()`
 7. Thêm hàm `newElementProps()` trong `PropertyPanel.ts`
-8. Thêm button vào sidebar trong `index.html`
-9. Thêm event listener trong `setupSidebar()` ở `main.ts`
-10. Thêm CSS styles trong `page.css`
-
-### Thêm property cho element hiện có
-1. Thêm field vào interface tương ứng trong `types.ts`
-2. Set default value trong `getDefaultProps()`
-3. Thêm input field trong hàm `xxxProps()` của `PropertyPanel.ts`
-4. Xử lý trong hàm `renderXxx()` của `ElementManager.ts`
+8. Thêm case trong switch của `renderPropertyPanel()`
+9. Thêm button vào sidebar trong `index.html`
+10. Thêm event listener trong `setupSidebar()` ở `main.ts`
+11. Thêm CSS styles trong `page.css`
+12. Nếu auto-height: thêm vào `isAutoHeightType()` trong `main.ts`
 
 ### Thêm template variable mới
-1. Thêm field vào `HanziDataItem` trong `types.ts`
-2. Thêm mô tả vào `KNOWN_DESCRIPTIONS` trong `TemplateEngine.ts`
-3. Thêm data vào `sampleData.json`
+1. Thêm field vào `buildDataFromCharacters()` trong `main.ts`
+2. Thêm vào sidebar Template Variables trong `index.html`
+3. Nếu cần data mới: cập nhật `characterService.ts` để load/merge
 
----
-
-## 15. Known Issues & TODOs
-
-- [ ] **Selecto.js** đã cài nhưng chưa tích hợp (multi-select elements)
-- [ ] **Image element** — button có nhưng chưa implement
-- [ ] **locked** property — có trong type nhưng chưa có UI
-- [ ] **Table cell editing** — chưa hỗ trợ edit nội dung từng cell
-- [ ] **Zoom** — hiển thị 100% cố định, chưa có zoom in/out
-- [ ] **Copy/Paste elements** — chưa implement
-- [ ] **Snap guidelines** — Moveable snapping hoạt động nhưng chưa có visual guides
-- [ ] **A4 page padding** — hiện tại page có `padding: 10mm`, elements positioned absolute bên trong
+### Thêm template preset mới
+1. Tạo file JSON trong `src/data/`
+2. Import trong `main.ts` và thêm vào `templatePresets`
+3. Thêm option vào `<select id="tool-template-preset">` trong `index.html`
+4. Thêm entry vào `sampleLayouts` trong `server/src/seed.js`
+5. Chạy `node src/seed.js` trong thư mục server
 
 ---
 
 ## 16. Lệnh thường dùng
 
 ```bash
-# Chạy dev server
-npm run dev
+# Frontend
+cd web
+npm run dev          # Dev server: http://localhost:5173/
+npm run build        # Build production
+npm run preview      # Preview production build
 
-# Build production
-npm run build
+# Backend
+cd server
+npm run dev          # Dev server with nodemon
+npm start            # Production start
+node src/seed.js     # Seed sample layouts into DB
 
-# Preview production build
-npm run preview
+# Docker
+docker-compose up -d # Start all services
 ```
 
-Dev server mặc định: `http://localhost:5173/`
+---
+
+## 17. Known Issues & TODOs
+
+- [ ] **Selecto.js** đã cài nhưng chưa tích hợp (multi-select elements)
+- [ ] **locked** property — có trong type nhưng chưa có UI
+- [ ] **Zoom** — hiển thị 100% cố định, chưa có zoom in/out
+- [ ] **Copy/Paste elements** — chưa implement
+- [ ] **Snap guidelines** — Moveable snapping hoạt động nhưng chưa có visual guides
+- [ ] **Font file size** — LXGWWenKai-Medium.ttf ~24MB, characters.json ~24MB → cần lazy loading hoặc CDN cho production
+- [ ] **Data View** — Khi bật mà chưa có data, tự dùng "你好我" làm mẫu

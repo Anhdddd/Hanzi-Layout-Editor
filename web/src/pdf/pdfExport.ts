@@ -1,22 +1,20 @@
 /**
  * PDF Export client utility.
- * Sends template + data to the backend for server-side PDF generation.
+ * Sends the client-rendered HTML to the server for Puppeteer PDF conversion.
+ * This ensures pixel-perfect output matching the preview.
  */
 import { authFetch } from '../auth/auth.ts';
-import type { AnyElementProps } from '../types.ts';
 
 export async function downloadPdf(
-  templateElements: AnyElementProps[],
-  dataArray: Record<string, unknown>[],
-  itemsPerPage: number,
+  pagesHtml: string,
+  pageSize: 'A4' | 'A5' = 'A4',
   fileName?: string
 ): Promise<void> {
   const res = await authFetch('/api/pdf/generate', {
     method: 'POST',
     body: JSON.stringify({
-      templateElements,
-      dataArray,
-      itemsPerPage,
+      pagesHtml,
+      pageSize,
     }),
   });
 
